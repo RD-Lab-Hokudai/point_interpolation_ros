@@ -140,7 +140,7 @@ void onDataReceive(const open3d_test::PointsImages &data)
                 res_front = interpolate(rgb_front, pcd_front, params_use, hyper_params);
                 for (int i = 0; i < res_front.points_.size(); i++)
                 {
-                    res_pcd.points_.emplace_back(res_front[i]);
+                    res_pcd.points_.emplace_back(res_front.points_[i]);
                 }
             }
 #pragma omp section
@@ -148,7 +148,7 @@ void onDataReceive(const open3d_test::PointsImages &data)
                 res_right = interpolate(rgb_right, pcd_right, params_use, hyper_params);
                 for (int i = 0; i < res_right.points_.size(); i++)
                 {
-                    res_pcd.points_.emplace_back(res_right[i]);
+                    res_pcd.points_.emplace_back(res_right.points_[i]);
                 }
             }
 #pragma omp section
@@ -156,7 +156,7 @@ void onDataReceive(const open3d_test::PointsImages &data)
                 res_back = interpolate(rgb_back, pcd_back, params_use, hyper_params);
                 for (int i = 0; i < res_back.points_.size(); i++)
                 {
-                    res_pcd.points_.emplace_back(res_back[i]);
+                    res_pcd.points_.emplace_back(res_back.points_[i]);
                 }
             }
 #pragma omp section
@@ -164,7 +164,7 @@ void onDataReceive(const open3d_test::PointsImages &data)
                 res_left = interpolate(rgb_left, pcd_left, params_use, hyper_params);
                 for (int i = 0; i < res_left.points_.size(); i++)
                 {
-                    res_pcd.points_.emplace_back(res_left[i]);
+                    res_pcd.points_.emplace_back(res_left.points_[i]);
                 }
             }
         }
