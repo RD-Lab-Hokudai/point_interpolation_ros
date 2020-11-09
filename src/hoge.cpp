@@ -108,23 +108,30 @@ void onDataReceive(const open3d_test::PointsImages &data)
     open3d::geometry::PointCloud pcd_front, pcd_right, pcd_back, pcd_left;
     for (int i = 0; i < pcd.points_.size(); i++)
     {
+        /*
         double x = pcd.points_[i][1];
+        double y = -pcd.points_[i][2];
         double z = -pcd.points_[i][0];
-        if (z > 0)
+        */
+        double x = pcd.points_[i][0];
+        double y = pcd.points_[i][1];
+        double z = pcd.points_[i][2];
+
+        if (x < 0)
         {
-            pcd_front.points_.emplace_back(pcd.points_[i]);
+            pcd_front.points_.emplace_back(x, y, z);
+        }
+        if (y > 0)
+        {
+            pcd_right.points_.emplace_back(-y, x, z);
         }
         if (x > 0)
         {
-            pcd_right.points_.emplace_back(pcd.points_[i]);
+            pcd_back.points_.emplace_back(-x, -y, z);
         }
-        if (z < 0)
+        if (y < 0)
         {
-            pcd_back.points_.emplace_back(pcd.points_[i]);
-        }
-        if (x < 0)
-        {
-            pcd_left.points_.emplace_back(pcd.points_[i]);
+            pcd_left.points_.emplace_back(y, -x, z);
         }
     }
 
@@ -148,7 +155,10 @@ void onDataReceive(const open3d_test::PointsImages &data)
                 res_right = interpolate(rgb_right, pcd_right, params_use, hyper_params);
                 for (int i = 0; i < res_right.points_.size(); i++)
                 {
-                    res_pcd.points_.emplace_back(res_right.points_[i]);
+                    double x = res_right.points_[i][0];
+                    double y = res_right.points_[i][1];
+                    double z = res_right.points_[i][2];
+                    res_pcd.points_.emplace_back(y, -x, z);
                 }
             }
 #pragma omp section
@@ -156,7 +166,10 @@ void onDataReceive(const open3d_test::PointsImages &data)
                 res_back = interpolate(rgb_back, pcd_back, params_use, hyper_params);
                 for (int i = 0; i < res_back.points_.size(); i++)
                 {
-                    res_pcd.points_.emplace_back(res_back.points_[i]);
+                    double x = res_back.points_[i][0];
+                    double y = res_back.points_[i][1];
+                    double z = res_back.points_[i][2];
+                    res_pcd.points_.emplace_back(-x, -y, z);
                 }
             }
 #pragma omp section
@@ -164,7 +177,10 @@ void onDataReceive(const open3d_test::PointsImages &data)
                 res_left = interpolate(rgb_left, pcd_left, params_use, hyper_params);
                 for (int i = 0; i < res_left.points_.size(); i++)
                 {
-                    res_pcd.points_.emplace_back(res_left.points_[i]);
+                    double x = res_left.points_[i][0];
+                    double y = res_left.points_[i][1];
+                    double z = res_left.points_[i][2];
+                    res_pcd.points_.emplace_back(-y, x, z);
                 }
             }
         }
