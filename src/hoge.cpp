@@ -98,26 +98,81 @@ void onDataReceive(const sensor_msgs::PointCloud2ConstPtr &data)
 void onDataReceive(const open3d_test::PointsImages &data)
 {
     cv::Mat rgb_front = cv_bridge::toCvCopy(data.rgb_front)->image;
+    cv::Mat rgb_right = cv_bridge::toCvCopy(data.rgb_right)->image;
+    cv::Mat rgb_back = cv_bridge::toCvCopy(data.rgb_back)->image;
+    cv::Mat rgb_left = cv_bridge::toCvCopy(data.rgb_left)->image;
 
     open3d::geometry::PointCloud pcd;
-    rosToOpen3d(data.points, pcd); // pcdへの変換がおかしい？
+    rosToOpen3d(data.points, pcd);
 
-    auto res = interpolate(rgb_front, pcd, params_use, hyper_params);
-    open3d::geometry::PointCloud hoge;
+    open3d::geometry::PointCloud pcd_front, pcd_right, pcd_back, pcd_left;
     for (int i = 0; i < pcd.points_.size(); i++)
     {
-        double x = pcd.points_[i][0];
-        double y = pcd.points_[i][1];
-        double z = pcd.points_[i][2];
-        if (z > 0 && abs(x / z) < 1.2)
+        double x = pcd.points_[i][1];
+        double z = -pcd.points_[i][0];
+        if (z > 0)
         {
-            hoge.points_.emplace_back(x, y, z);
+            pcd_front.points_.emplace_back(pcd.points_[i]);
+        }
+        if (x > 0)
+        {
+            pcd_right.points_.emplace_back(pcd.points_[i]);
+        }
+        if (z < 0)
+        {
+            pcd_back.points_.emplace_back(pcd.points_[i]);
+        }
+        if (x < 0)
+        {
+            pcd_left.points_.emplace_back(pcd.points_[i]);
+        }
+    }
+
+    open3d::geometry::PointCloud res_front, res_right, res_back, res_left;
+    open3d::geometry::PointCloud res_pcd;
+
+#pragma omp parallel
+    {
+#pragma omp sections
+        {
+#pragma omp section
+            {
+                res_front = interpolate(rgb_front, pcd_front, params_use, hyper_params);
+                for (int i = 0; i < res_front.points_.size(); i++)
+                {
+                    res_pcd.points_.emplace_back(res_front[i]);
+                }
+            }
+#pragma omp section
+            {
+                res_right = interpolate(rgb_right, pcd_right, params_use, hyper_params);
+                for (int i = 0; i < res_right.points_.size(); i++)
+                {
+                    res_pcd.points_.emplace_back(res_right[i]);
+                }
+            }
+#pragma omp section
+            {
+                res_back = interpolate(rgb_back, pcd_back, params_use, hyper_params);
+                for (int i = 0; i < res_back.points_.size(); i++)
+                {
+                    res_pcd.points_.emplace_back(res_back[i]);
+                }
+            }
+#pragma omp section
+            {
+                res_left = interpolate(rgb_left, pcd_left, params_use, hyper_params);
+                for (int i = 0; i < res_left.points_.size(); i++)
+                {
+                    res_pcd.points_.emplace_back(res_left[i]);
+                }
+            }
         }
     }
 
     sensor_msgs::PointCloud2 ros_pc2;
-    open3dToRos(hoge, ros_pc2, data.header.frame_id);
-    ros_pc2.header = data.points.header;
+    open3dToRos(res_pcd, ros_pc2, data.header.frame_id);
+    ros_pc2.header = data.points.header; // コレ大事
     _pub.publish(ros_pc2);
 }
 
