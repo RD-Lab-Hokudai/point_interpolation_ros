@@ -145,45 +145,46 @@ void onDataReceive(const open3d_test::PointsImages &data)
 #pragma omp section
             {
                 res_front = interpolate(rgb_front, pcd_front, params_use, hyper_params);
-                for (int i = 0; i < res_front.points_.size(); i++)
-                {
-                    res_pcd.points_.emplace_back(res_front.points_[i]);
-                }
             }
 #pragma omp section
             {
                 res_right = interpolate(rgb_right, pcd_right, params_use, hyper_params);
-                for (int i = 0; i < res_right.points_.size(); i++)
-                {
-                    double x = res_right.points_[i][0];
-                    double y = res_right.points_[i][1];
-                    double z = res_right.points_[i][2];
-                    res_pcd.points_.emplace_back(y, -x, z);
-                }
             }
 #pragma omp section
             {
                 res_back = interpolate(rgb_back, pcd_back, params_use, hyper_params);
-                for (int i = 0; i < res_back.points_.size(); i++)
-                {
-                    double x = res_back.points_[i][0];
-                    double y = res_back.points_[i][1];
-                    double z = res_back.points_[i][2];
-                    res_pcd.points_.emplace_back(-x, -y, z);
-                }
             }
 #pragma omp section
             {
                 res_left = interpolate(rgb_left, pcd_left, params_use, hyper_params);
-                for (int i = 0; i < res_left.points_.size(); i++)
-                {
-                    double x = res_left.points_[i][0];
-                    double y = res_left.points_[i][1];
-                    double z = res_left.points_[i][2];
-                    res_pcd.points_.emplace_back(-y, x, z);
-                }
             }
         }
+    }
+
+    for (int i = 0; i < res_front.points_.size(); i++)
+    {
+        res_pcd.points_.emplace_back(res_front.points_[i]);
+    }
+    for (int i = 0; i < res_right.points_.size(); i++)
+    {
+        double x = res_right.points_[i][0];
+        double y = res_right.points_[i][1];
+        double z = res_right.points_[i][2];
+        res_pcd.points_.emplace_back(y, -x, z);
+    }
+    for (int i = 0; i < res_back.points_.size(); i++)
+    {
+        double x = res_back.points_[i][0];
+        double y = res_back.points_[i][1];
+        double z = res_back.points_[i][2];
+        res_pcd.points_.emplace_back(-x, -y, z);
+    }
+    for (int i = 0; i < res_left.points_.size(); i++)
+    {
+        double x = res_left.points_[i][0];
+        double y = res_left.points_[i][1];
+        double z = res_left.points_[i][2];
+        res_pcd.points_.emplace_back(-y, x, z);
     }
 
     sensor_msgs::PointCloud2 ros_pc2;
