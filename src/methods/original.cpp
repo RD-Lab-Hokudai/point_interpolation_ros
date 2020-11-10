@@ -113,7 +113,6 @@ public:
             int diff_level = (int)(bucket_len * (get<0>(edges[i]) - diff_min) / (diff_max - diff_min));
             bucket[diff_level].emplace_back(i);
         }
-        cout << "Sort:" << chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - startTime).count() << "ms" << endl;
 
         for (int i = 0; i <= bucket_len; i++)
         {
@@ -191,11 +190,8 @@ void original(vector<vector<double>> &target_grid, vector<vector<double>> &base_
     shared_ptr<UnionFind> color_segments;
     {
         Graph graph(&img);
-        cout << chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start).count() << "ms" << endl;
         color_segments = graph.segmentate(color_segment_k);
     }
-    cout << "Segmentation" << endl;
-    cout << chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start).count() << "ms" << endl;
 
     /*
     {
@@ -270,5 +266,4 @@ void original(vector<vector<double>> &target_grid, vector<vector<double>> &base_
             }
         }
     }
-    cout << chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start).count() << "ms" << endl;
 }

@@ -14,7 +14,6 @@
 #include "methods/mrf.cpp"
 #include "methods/pwas.cpp"
 #include "methods/original.cpp"
-#include "postprocess/evaluate.cpp"
 #include "postprocess/restore_pcd.cpp"
 
 using namespace std;
@@ -46,8 +45,6 @@ geometry::PointCloud interpolate(cv::Mat &img, geometry::PointCloud &pcd, EnvPar
             }
         }
         swap(original_vs, target_vs);
-        cout << original_vs.size() << endl;
-        cout << target_vs.size() << endl;
     }
     else
     {
@@ -77,7 +74,6 @@ geometry::PointCloud interpolate(cv::Mat &img, geometry::PointCloud &pcd, EnvPar
                  hyperParams.original_sigma_r, hyperParams.original_r, hyperParams.original_coef_s);
     }
 
-    cout << "hoge" << endl;
     cv::Mat grid_img = cv::Mat::zeros(target_vs.size(), envParams.width, CV_8UC3);
     auto filtered_ptr = make_shared<geometry::PointCloud>();
     {
