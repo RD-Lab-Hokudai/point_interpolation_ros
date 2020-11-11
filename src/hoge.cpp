@@ -15,8 +15,8 @@
 #include "models/hyperParams.cpp"
 #include "models/lidarParams.cpp"
 #include "data/loadParams.cpp"
-#include "interpolate.cpp"
 #include "entire_methods/grid_entire.cpp"
+#include "entire_methods/original_entire.cpp"
 #include "entire_methods/linear_entire.cpp"
 #include "entire_methods/create_cloud_entire.cpp"
 
@@ -29,6 +29,7 @@ LidarParams lidar_params;
 
 ros::Publisher _pub;
 
+/*
 geometry::PointCloud interpolate(geometry::PointCloud &pcd, cv::Mat &rgb_front, cv::Mat &rgb_right, cv::Mat &rgb_back, cv::Mat &rgb_left)
 {
     open3d::geometry::PointCloud pcd_front, pcd_right, pcd_back, pcd_left;
@@ -111,6 +112,33 @@ geometry::PointCloud interpolate(geometry::PointCloud &pcd, cv::Mat &rgb_front, 
 
     return res_pcd;
 }
+*/
+
+void interpolate_original4(vector<vector<double>> &grid, cv::Mat &rgb_front, cv::Mat &rgb_right, cv::Mat &rgb_back, cv::Mat &rgb_left, vector<vector<Eigen::Vector3d>> &color_grid)
+{
+#pragma omp parallel
+    {
+#pragma omp sections
+        {
+#pragma omp section
+            {
+                original_entire(grid, params_use, hyper_params, lidar_params, rgb_front, 0, color_grid);
+            }
+#pragma omp section
+            {
+                original_entire(grid, params_use, hyper_params, lidar_params, rgb_right, -lidar_params.width / 4, color_grid);
+            }
+#pragma omp section
+            {
+                original_entire(grid, params_use, hyper_params, lidar_params, rgb_back, -lidar_params.width / 2, color_grid);
+            }
+#pragma omp section
+            {
+                original_entire(grid, params_use, hyper_params, lidar_params, rgb_left, lidar_params.width / 4, color_grid);
+            }
+        }
+    }
+}
 
 void onDataReceive(const open3d_test::PointsImages &data)
 {
@@ -123,9 +151,12 @@ void onDataReceive(const open3d_test::PointsImages &data)
     rosToOpen3d(data.points, pcd);
 
     //auto res_pcd = interpolate(pcd, rgb_front, rgb_right, rgb_back, rgb_left);
-    auto grid = grid_entire(pcd,lidar_params);
-    linear_entire(grid,lidar_params);
-    auto res_pcd = create_cloud_entire(grid,lidar_params);
+    auto grid = grid_entire(pcd, lidar_params);
+    vector<vector<Eigen::Vector3d>> color_grid(lidar_params.height, vector<Eigen::Vector3d>(lidar_params.width));
+    interpolate_original4(grid, rgb_front, rgb_right, rgb_back, rgb_left, color_grid);
+    //original_entire(grid, params_use, hyper_params, lidar_params, rgb_right, -lidar_params.width / 4, color_grid);
+    linear_entire(grid, lidar_params);
+    auto res_pcd = create_cloud_entire(grid, lidar_params, color_grid);
 
     sensor_msgs::PointCloud2 ros_pc2;
     open3dToRos(res_pcd, ros_pc2, data.header.frame_id);

@@ -9,7 +9,7 @@
 using namespace std;
 using namespace open3d;
 
-geometry::PointCloud create_cloud_entire(vector<vector<double>> &grid, LidarParams &lidarParams)
+geometry::PointCloud create_cloud_entire(vector<vector<double>> &grid, LidarParams &lidarParams, vector<vector<Eigen::Vector3d>> &color_grid)
 {
     geometry::PointCloud pcd;
     for (int i = 0; i < lidarParams.height; i++)
@@ -29,8 +29,15 @@ geometry::PointCloud create_cloud_entire(vector<vector<double>> &grid, LidarPara
             double z = grid[i][j] * tan(vertical_angle * M_PI / 180);
 
             pcd.points_.emplace_back(x, y, z);
+            if (color_grid[i][j][0] > 0 || color_grid[i][j][1] > 0 || color_grid[i][j][2] > 0)
+            {
+                pcd.colors_.emplace_back(color_grid[i][j]);
+            }
+            else
+            {
+                pcd.colors_.emplace_back(1.0, 1.0, 1.0);
+            }
         }
     }
-
     return pcd;
 }
