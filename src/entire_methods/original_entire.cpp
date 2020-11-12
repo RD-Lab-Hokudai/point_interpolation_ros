@@ -236,7 +236,8 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
             for (int j = 0; j < lidarParams.width; j++)
             {
                 if (grid[i][j] > 0)
-                {
+                { // すでに存在する点はそのまま入れる
+                    interpolated_grid[i][j] = grid[i][j];
                     continue;
                 }
 
@@ -262,10 +263,12 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
                         {
                             continue;
                         }
+                        /*
                         if (grid[i + dy][(j + dx + lidarParams.width) % lidarParams.width] == 0)
                         {
                             continue;
                         }
+                        */
 
                         int img_u_tmp = image_positions[i + dy][(j + dx + lidarParams.width) % lidarParams.width][1];
                         int img_v_tmp = image_positions[i + dy][(j + dx + lidarParams.width) % lidarParams.width][0];
@@ -281,7 +284,14 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
                         {
                             tmp *= hyperParams.original_coef_s;
                         }
-                        val += tmp * grid[i + dy][(j + dx + lidarParams.width) % lidarParams.width];
+                        if (grid[i + dy][(j + dx + lidarParams.width) % lidarParams.width] == 0)
+                        {
+                            val += tmp * 1e9;
+                        }
+                        else
+                        {
+                            val += tmp * grid[i + dy][(j + dx + lidarParams.width) % lidarParams.width];
+                        }
                         coef += tmp;
                     }
                 }
@@ -294,12 +304,54 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
     }
 
     {
-        // Apply
+        // Remove noise and Apply
+        int dx[4] ＝{1, 1, 0, -1};
+        int dy[4] = {0, 1, 1, 1};
+        vector<vector<bool>> oks(lidarParams.height, vector<bool>(lidarParams.width, false));
+        double rad_coef = 0.0001; //0.002
         for (int i = 0; i < lidarParams.height; i++)
         {
             for (int j = 0; j < lidarParams.width; j++)
             {
-                if (interpolated_grid[i][j] > 0 && grid[i][j] == 0)
+                // 無限遠の点は除外
+                if (interpolated_grid[i][j] > 1e9 - 1)
+                {
+                    continue;
+                }
+
+                double horizon_angle = lidarParams.horizon_res * j;
+                double vertical_angle = lidarParams.vertical_res * i - lidarParams.bottom_angle;
+                double x = interpolated_grid[i][j] * sin(horizon_angle * M_PI / 180);
+                double y = -interpolated_grid[i][j] * tan(vertical_angle * M_PI / 180);
+                double z = -interpolated_grid[i][j] * cos(horizon_angle * M_PI / 180);
+                double dist2 = x * x + y * y + z * z;
+                double radius = rad_coef * dist2;
+
+                bool ok = false;
+                for (int k = 0; k < 8; k++)
+                {
+                    int ii = i + dy[k];
+                    if (ii < 0 || ii >= lidarParams.height)
+                    {
+                        continue;
+                    }
+                    int jj = (j + dx[k] + lidarParams.width) % lidarParams.width;
+
+                    double horizon_angle_tmp = lidarParams.horizon_res * jj;
+                    double vertical_angle_tmp = lidarParams.vertical_res * ii - lidarParams.bottom_angle;
+                    double x_tmp = interpolated_grid[ii][jj] * sin(horizon_angle_tmp * M_PI / 180);
+                    double y_tmp = -interpolated_grid[ii][jj] * tan(vertical_angle_tmp * M_PI / 180);
+                    double z_tmp = -interpolated_grid[ii][jj] * cos(horizon_angle_tmp * M_PI / 180);
+                    double distance2 = (x - x_tmp) * (x - x_tmp) + (y - y_tmp) * (y - y_tmp) + (z - z_tmp) * (z - z_tmp);
+                    // ノイズ除去
+                    if (distance2 <= radius * radius)
+                    {
+                        oks[i][j] = true;
+                        oks[ii][jj] = true;
+                    }
+                }
+
+                if (oks[i][j] && interpolated_grid[i][j] > 0)
                 {
                     grid[i][j] = interpolated_grid[i][j];
                 }
