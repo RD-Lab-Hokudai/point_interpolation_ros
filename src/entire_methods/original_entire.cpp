@@ -236,7 +236,8 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
             for (int j = 0; j < lidarParams.width; j++)
             {
                 if (grid[i][j] > 0)
-                { // すでに存在する点はそのまま入れる
+                {
+                    // すでに存在する点はそのまま入れる
                     interpolated_grid[i][j] = grid[i][j];
                     continue;
                 }
@@ -263,12 +264,10 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
                         {
                             continue;
                         }
-                        /*
                         if (grid[i + dy][(j + dx + lidarParams.width) % lidarParams.width] == 0)
                         {
                             continue;
                         }
-                        */
 
                         int img_u_tmp = image_positions[i + dy][(j + dx + lidarParams.width) % lidarParams.width][1];
                         int img_v_tmp = image_positions[i + dy][(j + dx + lidarParams.width) % lidarParams.width][0];
@@ -283,10 +282,11 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
                         if (r1 != r0)
                         {
                             tmp *= hyperParams.original_coef_s;
+                            //tmp = 0;
                         }
                         if (grid[i + dy][(j + dx + lidarParams.width) % lidarParams.width] == 0)
                         {
-                            val += tmp * 1e9;
+                            val += tmp * 1e2;
                         }
                         else
                         {
@@ -295,7 +295,7 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
                         coef += tmp;
                     }
                 }
-                if (coef > 0)
+                if (coef > 0.5 /* some threshold */)
                 {
                     interpolated_grid[i][j] = val / coef;
                 }
@@ -305,20 +305,14 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
 
     {
         // Remove noise and Apply
-        int dx[4] ＝{1, 1, 0, -1};
+        int dx[4] = {1, 1, 0, -1};
         int dy[4] = {0, 1, 1, 1};
         vector<vector<bool>> oks(lidarParams.height, vector<bool>(lidarParams.width, false));
-        double rad_coef = 0.0001; //0.002
+        double rad_coef = 0.0002; //0.002
         for (int i = 0; i < lidarParams.height; i++)
         {
             for (int j = 0; j < lidarParams.width; j++)
             {
-                // 無限遠の点は除外
-                if (interpolated_grid[i][j] > 1e9 - 1)
-                {
-                    continue;
-                }
-
                 double horizon_angle = lidarParams.horizon_res * j;
                 double vertical_angle = lidarParams.vertical_res * i - lidarParams.bottom_angle;
                 double x = interpolated_grid[i][j] * sin(horizon_angle * M_PI / 180);
@@ -328,7 +322,7 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
                 double radius = rad_coef * dist2;
 
                 bool ok = false;
-                for (int k = 0; k < 8; k++)
+                for (int k = 0; k < 4; k++)
                 {
                     int ii = i + dy[k];
                     if (ii < 0 || ii >= lidarParams.height)
@@ -350,6 +344,8 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
                         oks[ii][jj] = true;
                     }
                 }
+
+                //oks[i][j] = true;
 
                 if (oks[i][j] && interpolated_grid[i][j] > 0)
                 {
