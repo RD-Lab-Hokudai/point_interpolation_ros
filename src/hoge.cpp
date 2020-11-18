@@ -151,8 +151,8 @@ void onDataReceive(const open3d_test::PointsImages &data)
     rosToOpen3d(data.points, pcd);
 
     //auto res_pcd = interpolate(pcd, rgb_front, rgb_right, rgb_back, rgb_left);
-    auto grid = grid_entire(pcd, lidar_params);
-    vector<vector<Eigen::Vector3d>> color_grid(lidar_params.height, vector<Eigen::Vector3d>(lidar_params.width));
+    vector<vector<double>> grid = grid_entire(pcd, lidar_params);
+    vector<vector<Eigen::Vector3d>> color_grid(lidar_params.height, vector<Eigen::Vector3d>(lidar_params.width, Eigen::Vector3d(0, 0, 0)));
     interpolate_original4(grid, rgb_front, rgb_right, rgb_back, rgb_left, color_grid);
     //original_entire(grid, params_use, hyper_params, lidar_params, rgb_right, -lidar_params.width / 4, color_grid);
     linear_entire(grid, lidar_params);
@@ -175,7 +175,7 @@ int main(int argc, char *argv[])
     ros::Subscriber sub = n.subscribe("/adapter/points_images", 1, onDataReceive);
     _pub = n.advertise<sensor_msgs::PointCloud2>("interpolated", 1);
 
-    string params_name = "miyanosawa_3_3_rgb_original";
+    string params_name = "miyanosawa_0204_rgb_original";
     cout << params_name << endl;
     params_use = loadParams(params_name);
     hyper_params = getDefaultHyperParams(params_use.isRGB);

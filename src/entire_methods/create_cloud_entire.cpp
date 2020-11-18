@@ -35,7 +35,7 @@ geometry::PointCloud create_cloud_entire(vector<vector<double>> &grid, LidarPara
             }
             else
             {
-                pcd.colors_.emplace_back(1.0, 1.0, 1.0);
+                pcd.colors_.emplace_back(0.1, 0.1, 0.1);
             }
         }
     }

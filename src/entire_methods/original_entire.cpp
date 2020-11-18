@@ -313,6 +313,15 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
         {
             for (int j = 0; j < lidarParams.width; j++)
             {
+                if (grid[i][j])
+                {
+                    continue;
+                }
+                if (interpolated_grid[i][j] == 0)
+                {
+                    continue;
+                }
+
                 double horizon_angle = lidarParams.horizon_res * j;
                 double vertical_angle = lidarParams.vertical_res * i - lidarParams.bottom_angle;
                 double x = interpolated_grid[i][j] * sin(horizon_angle * M_PI / 180);
@@ -347,7 +356,7 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
 
                 //oks[i][j] = true;
 
-                if (oks[i][j] && interpolated_grid[i][j] > 0)
+                if (oks[i][j])
                 {
                     grid[i][j] = interpolated_grid[i][j];
                 }
