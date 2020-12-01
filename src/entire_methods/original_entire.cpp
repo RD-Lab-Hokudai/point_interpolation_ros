@@ -2,7 +2,6 @@
 #include <iostream>
 #include <vector>
 
-#include <Open3D/Open3D.h>
 #include <opencv2/opencv.hpp>
 
 #include "../models/envParams.cpp"
@@ -10,7 +9,6 @@
 #include "../models/lidarParams.cpp"
 
 using namespace std;
-using namespace open3d;
 
 struct UnionFind
 {

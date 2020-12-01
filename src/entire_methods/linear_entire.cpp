@@ -2,12 +2,9 @@
 #include <iostream>
 #include <vector>
 
-#include <Open3D/Open3D.h>
-
 #include "../models/lidarParams.cpp"
 
 using namespace std;
-using namespace open3d;
 
 void linear_entire(vector<vector<double>> &grid, LidarParams &lidarParams)
 {
