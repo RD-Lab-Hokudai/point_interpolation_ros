@@ -276,7 +276,7 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
 
                         cv::Vec3b d1 = img.at<cv::Vec3b>(img_v_tmp, img_u_tmp);
                         int r1 = color_segments->root(img_v_tmp * envParams.width + img_u_tmp);
-                        double tmp = exp(-(dx * dx + dy * dy) / 2 / hyperParams.original_sigma_s / hyperParams.original_sigma_s) * exp(-cv::norm(d0 - d1) / 2 / hyperParams.original_sigma_r / hyperParams.original_sigma_r);
+                        double tmp = exp(-(dx * dx + dy * dy) / 2 / hyperParams.original_sigma_s / hyperParams.original_sigma_s); // * exp(-cv::norm(d0 - d1) / 2 / hyperParams.original_sigma_r / hyperParams.original_sigma_r);
                         if (r1 != r0)
                         {
                             tmp *= hyperParams.original_coef_s;
@@ -293,7 +293,7 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
                         coef += tmp;
                     }
                 }
-                if (coef > 0.5 /* some threshold */)
+                if (coef > 0.8 /* some threshold */)
                 {
                     interpolated_grid[i][j] = val / coef;
                 }
@@ -306,7 +306,7 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
         int dx[4] = {1, 1, 0, -1};
         int dy[4] = {0, 1, 1, 1};
         vector<vector<bool>> oks(lidarParams.height, vector<bool>(lidarParams.width, false));
-        double rad_coef = 0.0002; //0.002
+        double rad_coef = 0.002; //0.002
         for (int i = 0; i < lidarParams.height; i++)
         {
             for (int j = 0; j < lidarParams.width; j++)

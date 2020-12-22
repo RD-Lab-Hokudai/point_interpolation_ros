@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-#set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_STANDARD 14)
 project(open3d_test)
 
 find_package(catkin REQUIRED COMPONENTS
@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   message_generation
   cv_bridge
+  image_transport
 )
 
 #find_package(Eigen3 REQUIRED)
@@ -46,5 +47,8 @@ include_directories(
   ${Open3D_INCLUDE_DIRS}
 )
 
-add_executable(open3d_test_hoge src/hoge.cpp)
-target_link_libraries(open3d_test_hoge ${catkin_LIBRARIES} ${Open3D_LIBRARIES})
+link_libraries(${catkin_LIBRARIES} ${Open3D_LIBRARIES})
+
+add_executable(open3d_test_interpolate src/interpolate.cpp)
+
+add_executable(open3d_test_thermal_correction src/optris_correct_distortion.cpp)

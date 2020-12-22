@@ -12,6 +12,14 @@ void linear_entire(vector<vector<double>> &grid, LidarParams &lidarParams)
     {
         for (int j = 0; j < lidarParams.width; j++)
         {
+            // Only front
+            /*
+            if (j < lidarParams.width * (180 - 42) / 360 || j > lidarParams.width * (180 + 42) / 360)
+            {
+                continue;
+            }
+            */
+
             if (grid[i - 4][j] == 0 && grid[i][j] == 0)
             {
                 continue;

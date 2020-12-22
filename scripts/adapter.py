@@ -54,7 +54,7 @@ def lidarCallback(points):
 rospy.init_node('adapter', anonymous=True)
 
 thermal_sub = rospy.Subscriber(
-    '/thermal_image', Image, thermalCallback, queue_size=1, buff_size=5000000)
+    '/thermal_corrected', Image, thermalCallback, queue_size=1, buff_size=5000000)
 rgb_front_sub = rospy.Subscriber(
     '/usb_cam4/image_raw', Image, rgbFrontCallback, queue_size=1, buff_size=5000000)
 rgb_right_sub = rospy.Subscriber(
