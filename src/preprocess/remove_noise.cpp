@@ -218,3 +218,88 @@ void remove_noise_cv(cv::Mat &src, cv::Mat &dst, cv::Mat &target_vs_mat, EnvPara
         now = full_grid.at<double>(target_vs_mat.at<int>(position[0], position[1]), position[1]);
     });
 }
+
+void remove_noise_2d(vector<vector<double> > &src, vector<vector<double> > &dst, LidarParams &lidarParams, double rad_coef = 0.001, int min_k = 1)
+{
+    int rows = src.size();
+    int cols = src[0].size();
+    dst = vector<vector<double> >(rows, vector<double>(cols, 0));
+    vector<vector<Eigen::Vector3d> > poses(rows, vector<Eigen::Vector3d>(cols));
+    int r = 3;
+    for (int i = 0; i < rows; i++)
+    {
+        for (int j = 0; j < cols; j++)
+        {
+            if (src[i][j] <= 0)
+            {
+                continue;
+            }
+
+            double horizon_angle = lidarParams.horizon_res * j;
+            double x = src[i][j] * cos(horizon_angle * M_PI / 180);
+            double y = src[i][j] * sin(horizon_angle * M_PI / 180);
+
+            double vertical_angle = lidarParams.vertical_res * i - lidarParams.bottom_angle;
+            double z = src[i][j] * tan(vertical_angle * M_PI / 180);
+            poses[i][j] = Eigen::Vector3d(x, y, z);
+        }
+    }
+
+    vector<vector<vector<int> > > neighbor_indices(rows, vector<vector<int> >(cols, vector<int>(8, -1)));
+    int dx[8] = {1, 1, 0, -1, -1, -1, 0, 1};
+    int dy[8] = {0, 1, 1, 1, 0, -1 - 1 - 1};
+    for (int i = 0; i < 8; i++)
+    {
+    }
+
+    for (int i = 0; i < rows; i++)
+    {
+        for (int j = 0; j < cols; j++)
+        {
+            if (src[i][j] <= 0)
+            {
+                continue;
+            }
+
+            double horizon_angle = lidarParams.horizon_res * j;
+            double distance2 = poses[i][j].norm();
+            cout << poses[i][j] << " " << distance2 << endl;
+
+            //探索半径：係数*(距離)^2
+            double radius = rad_coef * distance2;
+            int neighbors = 0;
+
+            for (int ii = 0; ii < r; ii++)
+            {
+                for (int jj = 0; jj < r; jj++)
+                {
+                    int dx = jj - r / 2;
+                    int dy = ii - r / 2;
+                    if (dx == 0 && dy == 0)
+                    {
+                        continue;
+                    }
+
+                    int toY = i + dy;
+                    int toX = j + dx;
+                    if (toY < 0 || toY >= rows || toX < 0 || toX >= cols || src[toY][toX] <= 0)
+                    {
+                        continue;
+                    }
+
+                    double dist2 = (poses[i][j] - poses[toY][toX]).norm();
+
+                    if (dist2 <= radius)
+                    {
+                        neighbors++;
+                    }
+                }
+            }
+
+            if (neighbors >= min_k)
+            {
+                dst[i][j] = src[i][j];
+            }
+        }
+    }
+}

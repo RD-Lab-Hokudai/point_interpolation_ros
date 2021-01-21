@@ -2,7 +2,7 @@
 
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
-#include <open3d_test/PointsImages.h>
+#include <open3d_test/PointsImagesFront.h>
 
 #include <cv_bridge/cv_bridge.h>
 #include <Open3D/Open3D.h>
@@ -31,17 +31,15 @@ ros::Publisher _pub;
 
 void interpolate_original4(vector<vector<double> > &grid, cv::Mat &rgb_front, cv::Mat &rgb_right, cv::Mat &rgb_back, cv::Mat &rgb_left, vector<vector<Eigen::Vector3d> > &color_grid)
 {
-    original_entire(grid, params_use, hyper_params, lidar_params, rgb_front, 0, color_grid);
-    /*
 #pragma omp parallel
     {
 #pragma omp sections
         {
 #pragma omp section
             {
-                //original_entire(grid, params_use, hyper_params, lidar_params, rgb_front, 0, color_grid);
+                original_entire(grid, params_use, hyper_params, lidar_params, rgb_front, 0, color_grid);
             }
-            
+
 #pragma omp section
             {
                 original_entire(grid, params_use, hyper_params, lidar_params, rgb_right, -lidar_params.width / 4, color_grid);
@@ -56,7 +54,6 @@ void interpolate_original4(vector<vector<double> > &grid, cv::Mat &rgb_front, cv
             }
         }
     }
-    */
 }
 
 void interpolate_original_thermal(vector<vector<double> > &grid, cv::Mat &thermal, vector<vector<Eigen::Vector3d> > &color_grid)
@@ -64,13 +61,10 @@ void interpolate_original_thermal(vector<vector<double> > &grid, cv::Mat &therma
     original_entire(grid, params_use, hyper_params, lidar_params, thermal, 0, color_grid);
 }
 
-void onDataReceive(const open3d_test::PointsImages &data)
+void onDataReceive(const open3d_test::PointsImagesFront &data)
 {
     cv::Mat thermal = cv_bridge::toCvCopy(data.thermal)->image;
-    cv::Mat rgb_front = cv_bridge::toCvCopy(data.rgb_front)->image;
-    cv::Mat rgb_right = cv_bridge::toCvCopy(data.rgb_right)->image;
-    cv::Mat rgb_back = cv_bridge::toCvCopy(data.rgb_back)->image;
-    cv::Mat rgb_left = cv_bridge::toCvCopy(data.rgb_left)->image;
+    cv::Mat rgb_front = cv_bridge::toCvCopy(data.rgb)->image;
 
     open3d::geometry::PointCloud pcd;
     rosToOpen3d(data.points, pcd);
@@ -98,7 +92,7 @@ int main(int argc, char *argv[])
 
     // init subscribers and publishers
     ros::NodeHandle n;
-    ros::Subscriber sub = n.subscribe("/adapter/points_images", 1, onDataReceive);
+    ros::Subscriber sub = n.subscribe("/corrected/points_images_front", 1, onDataReceive);
     _pub = n.advertise<sensor_msgs::PointCloud2>("interpolated", 1);
 
     string params_name = "miyanosawa_3_3_thermal_original";

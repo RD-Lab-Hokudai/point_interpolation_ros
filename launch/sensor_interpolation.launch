@@ -11,4 +11,6 @@
     <param name="rgb_node" type="string" value="/rgb_image"/>
     <param name="points_node" type="string" value="/os1_cloud_node/points"/>
     <node name="adapter" pkg="open3d_test" type="open3d_test_adapter"/>
+
+    <node name="interpolater" pkg="open3d_test" type="open3d_test_interpolate"/>
 </launch>
