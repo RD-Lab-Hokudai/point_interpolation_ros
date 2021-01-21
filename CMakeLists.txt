@@ -30,7 +30,6 @@ generate_messages(
 )
 
 catkin_package(
-INCLUDE_DIRS include
 #  LIBRARIES open3d_test
 CATKIN_DEPENDS roscpp rospy std_msgs sensor_msgs message_runtime
 DEPENDS Open3D
@@ -57,3 +56,5 @@ link_libraries(${catkin_LIBRARIES} ${Open3D_LIBRARIES})
 add_executable(open3d_test_interpolate src/interpolate.cpp)
 
 add_executable(open3d_test_adapter src/adapter.cpp)
+
+add_executable(open3d_test_remove_noise_node src/remove_noise_node.cpp)

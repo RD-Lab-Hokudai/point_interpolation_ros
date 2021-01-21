@@ -16,48 +16,61 @@ using namespace std;
 using namespace open3d;
 
 ros::Publisher _pub;
+ros::Publisher _pub_removed;
 
 void publish_cloud()
 {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-    cloud->width = 10;
+    cloud->width = 10000;
     cloud->height = 1;
     cloud->points.resize(cloud->width * cloud->height);
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < cloud->size(); i++)
     {
-        (*cloud)[i].x = i;
-        (*cloud)[i].y = i;
-        (*cloud)[i].z = i;
+        double len = i * i * 0.00000005;
+        double rad = i * 0.01;
+        (*cloud)[i].x = len * cos(rad);
+        (*cloud)[i].y = 0;
+        (*cloud)[i].z = len * sin(rad);
     }
 
-    pcl::KdTreeFLANN<pcl::PointXYZ>::Ptr kdtree(new pcl::KdTreeFLANN<pcl::PointXYZ>);
-    //pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_no_nan(new pcl::PointCloud<pcl::PointXYZ>);
-    //vector<int> nan_index;
-    //pcl::removeNaNFromPointCloud(*cloud, *cloud_no_nan, nan_index);
-    kdtree->setInputCloud(cloud);
-
-    auto msg = cloud->makeShared();
-    msg->header.frame_id = "os1_lidar";
-    pcl_conversions::toPCL(ros::Time::now(), msg->header.stamp);
-    _pub.publish(msg);
+    sensor_msgs::PointCloud2 output;
+    pcl::toROSMsg(*cloud, output);
+    output.header.frame_id = "os1_lidar";
+    _pub.publish(output);
 }
 
 void onPointsReceive(const sensor_msgs::PointCloud2ConstPtr &msg)
 {
-    double rad_coef = 0.001;
+    double rad_coef = 0.01;
     int min_k = 2;
-    int min_range = 10;
+    int min_range = 3;
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::fromROSMsg(*msg, *cloud);
     pcl::PointCloud<pcl::PointXYZ>::Ptr near(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ>::Ptr far(new pcl::PointCloud<pcl::PointXYZ>);
 
+    for (int i = 0; i < cloud->size(); i++)
+    {
+        double x = (*cloud)[i].x;
+        double y = (*cloud)[i].y;
+        double z = (*cloud)[i].z;
+
+        double distance = x * x + y * y + z * z;
+        if (distance <= min_range * min_range)
+        {
+            near->push_back((*cloud)[i]);
+        }
+        else
+        {
+            far->push_back((*cloud)[i]);
+        }
+    }
+
     pcl::KdTreeFLANN<pcl::PointXYZ>::Ptr kdtree(new pcl::KdTreeFLANN<pcl::PointXYZ>);
-    kdtree->setInputCloud(cloud);
-    int point_cnt = cloud->size();
+    kdtree->setInputCloud(near);
     pcl::PointIndices::Ptr outliers(new pcl::PointIndices());
-    for (int i = 0; i < point_cnt; i++)
+    for (int i = 0; i < near->size(); i++)
     {
         double x = cloud->points[i].x;
         double y = cloud->points[i].y;
@@ -71,29 +84,23 @@ void onPointsReceive(const sensor_msgs::PointCloud2ConstPtr &msg)
         vector<float> pointNKNSquaredDistance(min_k);
 
         int result = kdtree->radiusSearch(cloud->points[i], radius, pointIdxNKNSearch, pointNKNSquaredDistance, min_k);
-        cout << result << endl;
         if (result == min_k)
         {
             outliers->indices.push_back(i);
         }
     }
-    cout << cloud->size() << endl;
-    cout << outliers->indices.size() << endl;
     pcl::ExtractIndices<pcl::PointXYZ> extract;
-    extract.setInputCloud(cloud);
+    extract.setInputCloud(near);
     extract.setIndices(outliers);
     extract.setNegative(false);
-    extract.filter(*cloud);
-    cout << cloud->size() << endl;
+    extract.filter(*near);
+
+    *near += *far;
 
     sensor_msgs::PointCloud2 output;
-    pcl::toROSMsg(*cloud, output);
-    /*
-    auto pub_msg = cloud->makeShared();
-    pub_msg->header.frame_id = "os1_lidar";
-    pcl_conversions::toPCL(ros::Time::now(), pub_msg->header.stamp);
-    */
-    _pub.publish(output);
+    pcl::toROSMsg(*near, output);
+    output.header.frame_id = "os1_lidar";
+    _pub_removed.publish(output);
 }
 
 int main(int argc, char *argv[])
@@ -104,9 +111,10 @@ int main(int argc, char *argv[])
 
     // init subscribers and publishers
     ros::NodeHandle n;
-    _pub = n.advertise<sensor_msgs::PointCloud2>("dummy", 1);
+    _pub = n.advertise<sensor_msgs::PointCloud2>("aaa/points", 1);
+    _pub_removed = n.advertise<sensor_msgs::PointCloud2>("aaa/removed", 1);
 
-    ros::Subscriber subPoints = n.subscribe("os1_cloud_node/points", 1, onPointsReceive);
+    ros::Subscriber subPoints = n.subscribe("aaa/points", 1, onPointsReceive);
 
     /*
     auto ptr = make_shared<geometry::PointCloud>();
@@ -120,7 +128,7 @@ int main(int argc, char *argv[])
     ros::Rate loop_rate(30);
     while (ros::ok())
     {
-        //publish_cloud();
+        publish_cloud();
         ros::spinOnce();
         loop_rate.sleep();
     }

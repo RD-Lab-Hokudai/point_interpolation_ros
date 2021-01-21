@@ -1,0 +1,18 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "",
+        "limitSymbolsToIncludedHeaders": true
+      },
+      "includePath": [
+        "/home/sono8/catkin_ws/devel/include/**",
+        "/opt/ros/melodic/include/**",
+        "/home/sono8/catkin_ws/src/perception_open3d/open3d_conversions/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS"
+    }
+  ],
+  "version": 4
+}
