@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!--Sensor Fusion-->
+<!-- 
+  roslaunch pcl_humandetection sensor_fusion_decompress.launch
+-->
+<launch>
+    <node name="thermal" type="republish" pkg="image_transport" output="screen"    args="compressed in:=/optris/image_mono raw out:=/thermal_image" />
+    <node name="rgb" type="republish" pkg="image_transport" output="screen"    args="compressed in:=/usb_cam/image_raw raw out:=/rgb_image" />
+    
+    <param name="thermal_node" type="string" value="/thermal_image"/>
+    <param name="rgb_node" type="string" value="/rgb_image"/>
+    <param name="points_node" type="string" value="/os1_cloud_node/points"/>
+    <node name="adapter" pkg="open3d_test" type="open3d_test_adapter"/>
+</launch>

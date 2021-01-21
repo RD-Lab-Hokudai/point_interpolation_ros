@@ -58,11 +58,11 @@ thermal_sub = rospy.Subscriber(
 rgb_front_sub = rospy.Subscriber(
     '/usb_cam4/image_raw', Image, rgbFrontCallback, queue_size=1, buff_size=5000000)
 rgb_right_sub = rospy.Subscriber(
-    '/usb_cam1/image_raw', Image, rgbRightCallback, queue_size=1, buff_size=5000000)
+    '/usb_cam4/image_raw', Image, rgbRightCallback, queue_size=1, buff_size=5000000)
 rgb_back_sub = rospy.Subscriber(
-    '/usb_cam2/image_raw', Image, rgbBackCallback, queue_size=1, buff_size=5000000)
+    '/usb_cam4/image_raw', Image, rgbBackCallback, queue_size=1, buff_size=5000000)
 rgb_left_sub = rospy.Subscriber(
-    '/usb_cam3/image_raw', Image, rgbLeftCallback, queue_size=1, buff_size=5000000)
+    '/usb_cam4/image_raw', Image, rgbLeftCallback, queue_size=1, buff_size=5000000)
 lidar_sub = rospy.Subscriber(
     '/os1_cloud_node/points', PointCloud2, lidarCallback, queue_size=1, buff_size=5000000)
 

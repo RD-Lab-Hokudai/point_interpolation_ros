@@ -29,17 +29,19 @@ LidarParams lidar_params;
 
 ros::Publisher _pub;
 
-void interpolate_original4(vector<vector<double>> &grid, cv::Mat &rgb_front, cv::Mat &rgb_right, cv::Mat &rgb_back, cv::Mat &rgb_left, vector<vector<Eigen::Vector3d>> &color_grid)
+void interpolate_original4(vector<vector<double> > &grid, cv::Mat &rgb_front, cv::Mat &rgb_right, cv::Mat &rgb_back, cv::Mat &rgb_left, vector<vector<Eigen::Vector3d> > &color_grid)
 {
+    original_entire(grid, params_use, hyper_params, lidar_params, rgb_front, 0, color_grid);
+    /*
 #pragma omp parallel
     {
 #pragma omp sections
         {
 #pragma omp section
             {
-                original_entire(grid, params_use, hyper_params, lidar_params, rgb_front, 0, color_grid);
+                //original_entire(grid, params_use, hyper_params, lidar_params, rgb_front, 0, color_grid);
             }
-            /*
+            
 #pragma omp section
             {
                 original_entire(grid, params_use, hyper_params, lidar_params, rgb_right, -lidar_params.width / 4, color_grid);
@@ -52,12 +54,12 @@ void interpolate_original4(vector<vector<double>> &grid, cv::Mat &rgb_front, cv:
             {
                 original_entire(grid, params_use, hyper_params, lidar_params, rgb_left, lidar_params.width / 4, color_grid);
             }
-            */
         }
     }
+    */
 }
 
-void interpolate_original_thermal(vector<vector<double>> &grid, cv::Mat &thermal, vector<vector<Eigen::Vector3d>> &color_grid)
+void interpolate_original_thermal(vector<vector<double> > &grid, cv::Mat &thermal, vector<vector<Eigen::Vector3d> > &color_grid)
 {
     original_entire(grid, params_use, hyper_params, lidar_params, thermal, 0, color_grid);
 }
@@ -74,8 +76,8 @@ void onDataReceive(const open3d_test::PointsImages &data)
     rosToOpen3d(data.points, pcd);
 
     //auto res_pcd = interpolate(pcd, rgb_front, rgb_right, rgb_back, rgb_left);
-    vector<vector<double>> grid = grid_entire(pcd, lidar_params);
-    vector<vector<Eigen::Vector3d>> color_grid(lidar_params.height, vector<Eigen::Vector3d>(lidar_params.width, Eigen::Vector3d(0, 0, 0)));
+    vector<vector<double> > grid = grid_entire(pcd, lidar_params);
+    vector<vector<Eigen::Vector3d> > color_grid(lidar_params.height, vector<Eigen::Vector3d>(lidar_params.width, Eigen::Vector3d(0, 0, 0)));
     interpolate_original_thermal(grid, thermal, color_grid);
     //interpolate_original4(grid, rgb_front, rgb_right, rgb_back, rgb_left, color_grid);
     //original_entire(grid, params_use, hyper_params, lidar_params, rgb_right, -lidar_params.width / 4, color_grid);

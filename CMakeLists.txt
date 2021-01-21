@@ -5,6 +5,8 @@ project(open3d_test)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
+  pcl_conversions
+  pcl_ros
   std_msgs
   sensor_msgs
   message_generation
@@ -18,6 +20,7 @@ find_package(Open3D REQUIRED)
 add_message_files(
   FILES
   PointsImages.msg
+  PointsImagesFront.msg
 )
 
 generate_messages(
@@ -39,6 +42,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -fopenmp")
 ## Build ##
 ###########
 
+link_directories(${Open3D_LIBRARY_DIRS})
+
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
@@ -51,4 +56,4 @@ link_libraries(${catkin_LIBRARIES} ${Open3D_LIBRARIES})
 
 add_executable(open3d_test_interpolate src/interpolate.cpp)
 
-add_executable(open3d_test_thermal_correction src/optris_correct_distortion.cpp)
+add_executable(open3d_test_adapter src/adapter.cpp)

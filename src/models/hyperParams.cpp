@@ -28,7 +28,7 @@ HyperParams getDefaultHyperParams(bool is_rgb = true)
     }
     else
     {
-        params = {1.0, 1000, 10, 1.6, 19, 7, 110, 2, 16, 7, 0.9};
+        params = {1.0, 1000, 10, 1.6, 19, 7, 440, 1.3, 19, 7, 0.32};
     }
 
     return params;

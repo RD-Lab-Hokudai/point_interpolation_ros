@@ -7,6 +7,7 @@
 #include "../models/envParams.cpp"
 #include "../models/hyperParams.cpp"
 #include "../models/lidarParams.cpp"
+#include "../preprocess/remove_noise.cpp"
 
 using namespace std;
 
@@ -42,7 +43,7 @@ struct UnionFind
 
 class Graph
 {
-    vector<tuple<double, int, int>> edges;
+    vector<tuple<double, int, int> > edges;
     int length;
 
     double get_diff(cv::Vec3b &a, cv::Vec3b &b)
@@ -169,9 +170,9 @@ public:
     }
 };
 
-void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperParams &hyperParams, LidarParams &lidarParams, cv::Mat &img, int horizon_offset, vector<vector<Eigen::Vector3d>> &color_grid)
+void original_entire(vector<vector<double> > &grid, EnvParams &envParams, HyperParams &hyperParams, LidarParams &lidarParams, cv::Mat &img, int horizon_offset, vector<vector<Eigen::Vector3d> > &color_grid)
 {
-    vector<vector<vector<int>>> image_positions(lidarParams.height, vector<vector<int>>(lidarParams.width, vector<int>(2, 0)));
+    vector<vector<vector<int> > > image_positions(lidarParams.height, vector<vector<int> >(lidarParams.width, vector<int>(2, 0)));
     {
         // Calibration
         double rollVal = (envParams.roll - 500) / 1000.0;
@@ -226,7 +227,7 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
         color_segments = graph.segmentate(hyperParams.original_color_segment_k);
     }
 
-    vector<vector<double>> interpolated_grid(lidarParams.height, vector<double>(lidarParams.width, 0));
+    vector<vector<double> > interpolated_grid(lidarParams.height, vector<double>(lidarParams.width, 0));
     {
         // Enhancement
         for (int i = 0; i < lidarParams.height; i++)
@@ -293,7 +294,7 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
                         coef += tmp;
                     }
                 }
-                if (coef > 0.8 /* some threshold */)
+                if (coef > 0 /* some threshold */)
                 {
                     interpolated_grid[i][j] = val / coef;
                 }
@@ -301,12 +302,13 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
         }
     }
 
+    //vector<vector<double> > removed;
+    //remove_noise(interpolated_grid, removed, lidarParams);
+    auto ptr = make_shared<geometry::PointCloud>();
+    auto kdtree = make_shared<geometry::KDTreeFlann>(*ptr);
+
     {
-        // Remove noise and Apply
-        int dx[4] = {1, 1, 0, -1};
-        int dy[4] = {0, 1, 1, 1};
-        vector<vector<bool>> oks(lidarParams.height, vector<bool>(lidarParams.width, false));
-        double rad_coef = 0.002; //0.002
+        // Apply
         for (int i = 0; i < lidarParams.height; i++)
         {
             for (int j = 0; j < lidarParams.width; j++)
@@ -315,49 +317,7 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
                 {
                     continue;
                 }
-                if (interpolated_grid[i][j] == 0)
-                {
-                    continue;
-                }
-
-                double horizon_angle = lidarParams.horizon_res * j;
-                double vertical_angle = lidarParams.vertical_res * i - lidarParams.bottom_angle;
-                double x = interpolated_grid[i][j] * sin(horizon_angle * M_PI / 180);
-                double y = -interpolated_grid[i][j] * tan(vertical_angle * M_PI / 180);
-                double z = -interpolated_grid[i][j] * cos(horizon_angle * M_PI / 180);
-                double dist2 = x * x + y * y + z * z;
-                double radius = rad_coef * dist2;
-
-                bool ok = false;
-                for (int k = 0; k < 4; k++)
-                {
-                    int ii = i + dy[k];
-                    if (ii < 0 || ii >= lidarParams.height)
-                    {
-                        continue;
-                    }
-                    int jj = (j + dx[k] + lidarParams.width) % lidarParams.width;
-
-                    double horizon_angle_tmp = lidarParams.horizon_res * jj;
-                    double vertical_angle_tmp = lidarParams.vertical_res * ii - lidarParams.bottom_angle;
-                    double x_tmp = interpolated_grid[ii][jj] * sin(horizon_angle_tmp * M_PI / 180);
-                    double y_tmp = -interpolated_grid[ii][jj] * tan(vertical_angle_tmp * M_PI / 180);
-                    double z_tmp = -interpolated_grid[ii][jj] * cos(horizon_angle_tmp * M_PI / 180);
-                    double distance2 = (x - x_tmp) * (x - x_tmp) + (y - y_tmp) * (y - y_tmp) + (z - z_tmp) * (z - z_tmp);
-                    // ノイズ除去
-                    if (distance2 <= radius * radius)
-                    {
-                        oks[i][j] = true;
-                        oks[ii][jj] = true;
-                    }
-                }
-
-                //oks[i][j] = true;
-
-                if (oks[i][j])
-                {
-                    grid[i][j] = interpolated_grid[i][j];
-                }
+                grid[i][j] = interpolated_grid[i][j];
             }
         }
     }

@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "vector": "cpp"
+        "*.cpp": "cpp",
+        "vector": "cpp",
+        "bitset": "cpp",
+        "string_view": "cpp"
     }
 }
