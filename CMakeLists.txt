@@ -58,3 +58,5 @@ add_executable(open3d_test_interpolate src/interpolate.cpp)
 add_executable(open3d_test_adapter src/adapter.cpp)
 
 add_executable(open3d_test_remove_noise_node src/remove_noise_node.cpp)
+
+add_executable(open3d_test_new_adapter src/new_adapter_node.cpp)
