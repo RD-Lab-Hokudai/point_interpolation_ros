@@ -308,7 +308,7 @@ void original_entire(vector<vector<double> > &grid, EnvParams &envParams, HyperP
         }
     }
 
-    //remove_noise_2d(interpolated_grid, noise_removed, lidarParams, 0.001, 2);
+    remove_noise(interpolated_grid, noise_removed, lidarParams, 0.001, 2);
     //interpolated_grid = noise_removed;
 
     {

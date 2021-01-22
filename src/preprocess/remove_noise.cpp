@@ -7,42 +7,17 @@
 #include <pcl/point_cloud.h>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/filters/filter.h>
+#include <pcl/filters/extract_indices.h>
 
 using namespace std;
 using namespace open3d;
 
 void remove_noise(vector<vector<double> > &src, vector<vector<double> > &dst, LidarParams &lidarParams, double rad_coef = 0.001, int min_k = 1)
 {
+    int min_range = 3;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr near(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr far(new pcl::PointCloud<pcl::PointXYZ>);
     int cnt = 0;
-    for (int i = 0; i < src.size(); i++)
-    {
-        for (int j = 0; j < src[0].size(); j++)
-        {
-            if (src[i][j] <= 0)
-            {
-                continue;
-            }
-            cnt++;
-        }
-    }
-    cout << cnt << endl;
-
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-    cloud->width = 10;
-    cloud->height = 1;
-    cloud->points.resize(cloud->width * cloud->height);
-    for (int i = 0; i < 10; i++)
-    {
-        (*cloud)[i].x = i;
-        (*cloud)[i].y = i;
-        (*cloud)[i].z = i;
-    }
-
-    /*
-    cloud->width = cnt;
-    cloud->height = 1;
-    cloud->points.resize(cloud->width * cloud->height);
-    cnt = 0;
     for (int i = 0; i < src.size(); i++)
     {
         for (int j = 0; j < src[0].size(); j++)
@@ -59,119 +34,67 @@ void remove_noise(vector<vector<double> > &src, vector<vector<double> > &dst, Li
             double vertical_angle = lidarParams.vertical_res * i - lidarParams.bottom_angle;
             double z = src[i][j] * tan(vertical_angle * M_PI / 180);
 
-            (*cloud)[cnt].x = x;
-            (*cloud)[cnt].y = y;
-            (*cloud)[cnt].z = z;
-            cnt++;
+            double distance2 = x * x + y * y + z * z;
+            if (distance2 <= min_range * min_range)
+            {
+                near->push_back(pcl::PointXYZ(x, y, z));
+                cnt++;
+            }
+            else
+            {
+                far->push_back(pcl::PointXYZ(x, y, z));
+            }
         }
     }
-    */
-
-    //auto kdtree = make_shared<geometry::KDTreeFlann>(*ptr);
-    //cout << "a" << endl;
-
     cout << cnt << endl;
-    pcl::KdTreeFLANN<pcl::PointXYZ>::Ptr kdtree(new pcl::KdTreeFLANN<pcl::PointXYZ>);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_no_nan(new pcl::PointCloud<pcl::PointXYZ>);
-    vector<int> nan_index;
-    pcl::removeNaNFromPointCloud(*cloud, *cloud_no_nan, nan_index);
-    cout << cloud_no_nan->width << endl;
-    kdtree->setInputCloud(cloud_no_nan);
-    cout << cloud_no_nan->width << endl;
-    /*
-    dst = vector<vector<double> >(src.size(), vector<double>(src[0].size(), 0));
-    */
+    cout << near->size() << endl;
 
-    /*
-    for (int i = 0; i < cnt; i++)
+    pcl::KdTreeFLANN<pcl::PointXYZ>::Ptr kdtree(new pcl::KdTreeFLANN<pcl::PointXYZ>);
+    kdtree->setInputCloud(near);
+    pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
+    for (int i = 0; i < near->size(); i++)
     {
-        double x = cloud->points[i].x;
-        double y = cloud->points[i].y;
-        double z = cloud->points[i].z;
+        double x = near->points[i].x;
+        double y = near->points[i].y;
+        double z = near->points[i].z;
         double distance2 = x * x + y * y + z * z;
 
         //探索半径：係数*(距離)^2
         double radius = rad_coef * distance2;
 
-        vector<int> pointIdxNKNSearch(min_k + 1);
-        vector<float> pointNKNSquaredDistance(min_k + 1);
+        vector<int> pointIdxNKNSearch(min_k);
+        vector<float> pointNKNSquaredDistance(min_k);
 
-        if (kdtree.nearestKSearch(cloud->points[i], min_k + 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0)
+        int result = kdtree->radiusSearch(near->points[i], radius, pointIdxNKNSearch, pointNKNSquaredDistance, min_k);
+        if (result == min_k)
         {
-            bool ok = true;
-            for (size_t i = 0; i < pointNKNSquaredDistance.size(); ++i)
-            {
-                if (sqrt(pointNKNSquaredDistance[i]) > radius)
-                {
-                    ok = false;
-                    break;
-                }
-            }
-            
-            if (ok)
-            {
-                double len = sqrt(x * x + y * y);
-
-                double vertical_angle = atan2(z, len) * 180 / M_PI;
-                int rowIdx = (vertical_angle + lidarParams.bottom_angle) / lidarParams.vertical_res;
-                double horizon_angle = atan2(y, x) * 180 / M_PI;
-                int columnIdx = horizon_angle / lidarParams.horizon_res;
-                if (0 <= rowIdx && rowIdx < dst.size() && 0 <= columnIdx && columnIdx < dst[0].size())
-                {
-                    dst[rowIdx][columnIdx] = len;
-                }
-            }
+            inliers->indices.push_back(i);
         }
     }
-    */
+    pcl::ExtractIndices<pcl::PointXYZ> extract;
+    extract.setInputCloud(near);
+    extract.setIndices(inliers);
+    extract.setNegative(false);
+    extract.filter(*near);
 
-    /*
-    cout << ptr->points_.size() << endl;
-    auto kdtree = make_shared<geometry::KDTreeFlann>(*ptr);
-    cout << "a" << endl;
-    */
-    /*
-    for (int i = 0; i < ptr->points_.size(); i++)
+    *near += *far;
+    for (int i = 0; i < near->size(); i++)
     {
-        double x = ptr->points_[i][0];
-        double y = ptr->points_[i][1];
-        double z = ptr->points_[i][2];
-        double distance2 = x * x + y * y + z * z;
+        double x = near->points[i].x;
+        double y = near->points[i].y;
+        double z = near->points[i].z;
 
-        //探索半径：係数*(距離)^2
-        double radius = rad_coef * distance2;
+        double len = sqrt(x * x + y * y);
 
-        //最も近い点を探索し，半径r以内にあるか判定
-        vector<int> indexes;
-        vector<double> dists;
-        kdtree->SearchKNN(ptr->points_[i], min_k + 1, indexes, dists);
-
-        //radiusを超えない範囲に近傍点があれば残す
-        if (dists[min_k] <= radius)
+        double vertical_angle = atan2(z, len) * 180 / M_PI;
+        int rowIdx = (vertical_angle + lidarParams.bottom_angle) / lidarParams.vertical_res;
+        double horizon_angle = atan2(y, x) * 180 / M_PI;
+        int columnIdx = horizon_angle / lidarParams.horizon_res;
+        if (0 <= rowIdx && rowIdx < dst.size() && 0 <= columnIdx && columnIdx < dst[0].size())
         {
-            double len = sqrt(x * x + y * y);
-
-            double vertical_angle = atan2(z, len) * 180 / M_PI;
-            int rowIdx = (vertical_angle + lidarParams.bottom_angle) / lidarParams.vertical_res;
-            double horizon_angle = atan2(y, x) * 180 / M_PI;
-            int columnIdx = horizon_angle / lidarParams.horizon_res;
-            if (0 <= rowIdx && rowIdx < dst.size() && 0 <= columnIdx && columnIdx < dst[0].size())
-            {
-                dst[rowIdx][columnIdx] = len;
-            }
+            dst[rowIdx][columnIdx] = len;
         }
-
-        /*
-        kdtree->SearchRadius(ptr->points_[i], radius, indexes, dists);
-        if (indexes.size() >= min_k + 1)
-        {
-            int u = x / z * envParams.f_xy + envParams.width / 2;
-            int v = y / z * envParams.f_xy + envParams.height / 2;
-            full_grid[v][u] = z;
-        }
-        
-}
-*/
+    }
 }
 
 void remove_noise_cv(cv::Mat &src, cv::Mat &dst, cv::Mat &target_vs_mat, EnvParams envParams, double rad_coef = 0.001, int min_k = 1)
