@@ -18,8 +18,8 @@
 #include <Open3D/Open3D.h>
 
 #include "models/lidarParams.cpp"
-//#include "io/rosToOpen3d.cpp"
-//#include "io/open3dToRos.cpp"
+#include "io/rosToOpen3d.cpp"
+#include "io/open3dToRos.cpp"
 
 using namespace std;
 using namespace open3d;
@@ -102,29 +102,29 @@ void onRGBReceive(const sensor_msgs::ImageConstPtr &msg)
     rgb = msg;
 }
 
-/*
 void downsample_points(const sensor_msgs::PointCloud2 &src, sensor_msgs::PointCloud2 &dst)
 {
-    open3d::geometry::PointCloud pcd;
-    rosToOpen3d(src, pcd);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::fromROSMsg(src, *cloud);
 
-    geometry::PointCloud downsampled;
-    for (int i = 0; i < pcd.points_.size(); i++)
+    pcl::PointCloud<pcl::PointXYZ>::Ptr result(new pcl::PointCloud<pcl::PointXYZ>);
+    for (int i = 0; i < cloud->size(); i++)
     {
-        double x = pcd.points_[i][0];
-        double y = pcd.points_[i][1];
-        double z = pcd.points_[i][2];
+        double x = (*cloud)[i].x;
+        double y = (*cloud)[i].y;
+        double z = (*cloud)[i].z;
+
         double vertical_angle = atan2(z, sqrt(x * x + y * y)) * 180 / M_PI;
         int rowIdx = (int)((vertical_angle + lidarParams.bottom_angle) / lidarParams.vertical_res + 0.5);
         if (rowIdx >= 0 && rowIdx < lidarParams.height && rowIdx % 4 == 0)
         {
-            downsampled.points_.emplace_back(x, y, z);
+            result->push_back(pcl::PointXYZ(x, y, z));
         }
     }
 
-    open3dToRos(downsampled, dst, src.header.frame_id);
+    pcl::toROSMsg(*result, dst);
+    dst.header.frame_id = src.header.frame_id;
 }
-*/
 
 void remove_noise(const sensor_msgs::PointCloud2 &src, sensor_msgs::PointCloud2 &dst, double rad_coef = 0.01, int min_k = 2)
 {
@@ -196,9 +196,9 @@ void onPointsReceive(const sensor_msgs::PointCloud2ConstPtr &msg)
     pub_msg.thermal = *cv_bridge::CvImage(std_msgs::Header(), "mono8", thermal).toImageMsg();
     pub_msg.rgb = *rgb;
     sensor_msgs::PointCloud2 downsampled;
-    //downsample_points(*msg, downsampled);
+    downsample_points(*msg, downsampled);
     sensor_msgs::PointCloud2 output;
-    remove_noise(*msg, output, 0.01, 3);
+    remove_noise(downsampled, output, 0.01, 3);
     pub_msg.points = output;
     _pub_data.publish(pub_msg);
 }
