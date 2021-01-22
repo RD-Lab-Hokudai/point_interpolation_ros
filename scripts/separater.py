@@ -33,5 +33,5 @@ def dataCallback(pointsImages):
 rospy.init_node('separater', anonymous=True)
 
 data_sub = rospy.Subscriber(
-    '/corrected/points_images_front', PointsImagesFront, dataCallback, queue_size=1, buff_size=5000000)
+    '/removed/points_images_front', PointsImagesFront, dataCallback, queue_size=1, buff_size=5000000)
 rospy.spin()

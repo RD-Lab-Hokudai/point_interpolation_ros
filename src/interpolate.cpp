@@ -79,8 +79,7 @@ void onDataReceive(const open3d_test::PointsImagesFront &data)
     auto res_pcd = create_cloud_entire(grid, lidar_params, color_grid);
 
     sensor_msgs::PointCloud2 ros_pc2;
-    open3dToRos(res_pcd, ros_pc2, data.header.frame_id);
-    ros_pc2.header = data.points.header; // コレ大事
+    open3dToRos(res_pcd, ros_pc2, data.points.header.frame_id);
     _pub.publish(ros_pc2);
 }
 
@@ -92,10 +91,11 @@ int main(int argc, char *argv[])
 
     // init subscribers and publishers
     ros::NodeHandle n;
-    ros::Subscriber sub = n.subscribe("/corrected/points_images_front", 1, onDataReceive);
+    ros::Subscriber sub = n.subscribe("/adapter/points_images_front", 1, onDataReceive);
     _pub = n.advertise<sensor_msgs::PointCloud2>("interpolated", 1);
 
     string params_name = "miyanosawa_3_3_thermal_original";
+    //"miyanosawa_1203_thermal_original";
     cout << params_name << endl;
     params_use = loadParams(params_name);
     hyper_params = getDefaultHyperParams(params_use.isRGB);

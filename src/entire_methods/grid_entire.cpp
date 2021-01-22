@@ -18,7 +18,7 @@ vector<vector<double>> grid_entire(geometry::PointCloud &pcd, LidarParams &lidar
         double y = pcd.points_[i][1];
         double z = pcd.points_[i][2];
         double vertical_angle = atan2(z, sqrt(x * x + y * y)) * 180 / M_PI;
-        int rowIdx = (vertical_angle + lidarParams.bottom_angle) / lidarParams.vertical_res;
+        int rowIdx = (int)((vertical_angle + lidarParams.bottom_angle) / lidarParams.vertical_res + 0.5);
 
         if (rowIdx < 0 || rowIdx >= lidarParams.height || rowIdx % 4 > 0)
         {

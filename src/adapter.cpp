@@ -2,6 +2,7 @@
 #include "ros/ros.h"
 #include <pcl_ros/point_cloud.h>
 #include <cv_bridge/cv_bridge.h>
+#include <pcl/io/pcd_io.h>
 #include <image_transport/image_transport.h>
 #include <open3d_test/PointsImagesFront.h>
 
@@ -11,9 +12,12 @@
 
 #include <Open3D/Open3D.h>
 
+#include "models/lidarParams.cpp"
 #include "io/rosToOpen3d.cpp"
+#include "io/open3dToRos.cpp"
 
 using namespace std;
+using namespace open3d;
 
 ros::Publisher _data_pub;
 /*
@@ -125,6 +129,30 @@ void onRGBReceive(const sensor_msgs::ImageConstPtr &msg)
     rgb = msg;
 }
 
+void downsample_points(const sensor_msgs::PointCloud2ConstPtr &src, sensor_msgs::PointCloud2 &dst)
+{
+    LidarParams lidarParams = getDefaultLidarParams();
+    open3d::geometry::PointCloud pcd;
+    rosToOpen3d(*src, pcd);
+
+    geometry::PointCloud downsampled;
+    for (int i = 0; i < pcd.points_.size(); i++)
+    {
+        double x = pcd.points_[i][0];
+        double y = pcd.points_[i][1];
+        double z = pcd.points_[i][2];
+        double vertical_angle = atan2(z, sqrt(x * x + y * y)) * 180 / M_PI;
+        int rowIdx = (int)((vertical_angle + lidarParams.bottom_angle) / lidarParams.vertical_res + 0.5);
+        if (rowIdx >= 0 && rowIdx < lidarParams.height && rowIdx % 4 == 0)
+        {
+            downsampled.points_.emplace_back(x, y, z);
+        }
+    }
+
+    open3dToRos(downsampled, dst, src->header.frame_id);
+    //dst.header = src.header; // コレ大事
+}
+
 void onPointsReceive(const sensor_msgs::PointCloud2ConstPtr &msg)
 {
     if (!rgb || !thermal.data)
@@ -134,10 +162,21 @@ void onPointsReceive(const sensor_msgs::PointCloud2ConstPtr &msg)
 
     open3d_test::PointsImagesFront pub_msg;
     pub_msg.thermal = *cv_bridge::CvImage(std_msgs::Header(), "mono8", thermal).toImageMsg();
-    //pub_msg.thermal = *thermal_raw;
     pub_msg.rgb = *rgb;
-    pub_msg.points = *msg;
+    sensor_msgs::PointCloud2 points;
+    downsample_points(msg, points);
+    pub_msg.points = points;
     _data_pub.publish(pub_msg);
+
+    /*
+    cv::imwrite(to_string(cnt) + "_thermal.png", thermal);
+    cv::Mat rgb_mat = cv_bridge::toCvCopy(rgb, sensor_msgs::image_encodings::BGR8)->image;
+    cv::imwrite(to_string(cnt) + "_rgb.png", rgb_mat);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::fromROSMsg(*msg, *cloud);
+    pcl::io::savePCDFileASCII(to_string(cnt) + ".pcd", *cloud);
+    cnt++;
+    */
 }
 
 int main(int argc, char *argv[])
@@ -158,7 +197,7 @@ int main(int argc, char *argv[])
     image_transport::Subscriber subRGB = it.subscribe(rgb_node, 1, onRGBReceive);
 
     ros::Subscriber subPoints = n.subscribe(points_node, 1, onPointsReceive);
-    _data_pub = n.advertise<open3d_test::PointsImagesFront>("/corrected/points_images_front", 1);
+    _data_pub = n.advertise<open3d_test::PointsImagesFront>("/adapter/points_images_front", 1);
 
     // specify loop rate: a meaningful value according to your publisher configuration
     ros::Rate loop_rate(30);
