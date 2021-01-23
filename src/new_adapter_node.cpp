@@ -198,7 +198,7 @@ void onPointsReceive(const sensor_msgs::PointCloud2ConstPtr &msg)
     sensor_msgs::PointCloud2 downsampled;
     downsample_points(*msg, downsampled);
     sensor_msgs::PointCloud2 output;
-    remove_noise(downsampled, output, 0.01, 3);
+    remove_noise(downsampled, output, 0.001, 3);
     pub_msg.points = output;
     _pub_data.publish(pub_msg);
 }
@@ -219,7 +219,7 @@ int main(int argc, char *argv[])
     image_transport::Subscriber subRGB = it.subscribe("/usb_cam4/image_raw", 1, onRGBReceive);
 
     _pub_removed = n.advertise<sensor_msgs::PointCloud2>("/removed", 1);
-    _pub_data = n.advertise<open3d_test::PointsImagesFront>("/removed/points_images_front", 1);
+    _pub_data = n.advertise<open3d_test::PointsImagesFront>("/adapter/points_images_front", 1);
 
     ros::Subscriber subPoints = n.subscribe("/os1_cloud_node/points", 1, onPointsReceive);
 

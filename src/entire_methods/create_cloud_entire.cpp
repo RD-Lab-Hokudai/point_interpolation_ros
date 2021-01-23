@@ -2,6 +2,9 @@
 #include <iostream>
 #include <vector>
 
+#include <sensor_msgs/PointCloud2.h>
+#include <pcl_conversions/pcl_conversions.h>
+
 #include <Open3D/Open3D.h>
 
 #include "../models/lidarParams.cpp"
@@ -40,4 +43,32 @@ geometry::PointCloud create_cloud_entire(vector<vector<double>> &grid, LidarPara
         }
     }
     return pcd;
+}
+
+void create_cloud_entire2(vector<vector<double>> &src, LidarParams &lidarParams, sensor_msgs::PointCloud2 &dst)
+{
+    pcl::PointCloud<pcl::PointXYZ>::Ptr result(new pcl::PointCloud<pcl::PointXYZ>);
+
+    for (int i = 0; i < lidarParams.height; i++)
+    {
+        for (int j = 0; j < lidarParams.width; j++)
+        {
+            if (src[i][j] == 0)
+            {
+                continue;
+            }
+
+            double horizon_angle = lidarParams.horizon_res * j;
+            double x = src[i][j] * cos(horizon_angle * M_PI / 180);
+            double y = src[i][j] * sin(horizon_angle * M_PI / 180);
+
+            double vertical_angle = lidarParams.vertical_res * i - lidarParams.bottom_angle;
+            double z = src[i][j] * tan(vertical_angle * M_PI / 180);
+
+            result->push_back(pcl::PointXYZ(x, y, z));
+        }
+    }
+
+    pcl::toROSMsg(*result, dst);
+    dst.header.frame_id = "os1_lidar";
 }

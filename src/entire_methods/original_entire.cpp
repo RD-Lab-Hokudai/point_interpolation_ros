@@ -43,7 +43,7 @@ struct UnionFind
 
 class Graph
 {
-    vector<tuple<double, int, int> > edges;
+    vector<tuple<double, int, int>> edges;
     int length;
 
     double get_diff(cv::Vec3b &a, cv::Vec3b &b)
@@ -170,15 +170,15 @@ public:
     }
 };
 
-void original_entire(vector<vector<double> > &grid, EnvParams &envParams, HyperParams &hyperParams, LidarParams &lidarParams, cv::Mat &img, int horizon_offset, vector<vector<Eigen::Vector3d> > &color_grid)
+void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperParams &hyperParams, LidarParams &lidarParams, cv::Mat &img, int horizon_offset, vector<vector<Eigen::Vector3d>> &color_grid)
 {
-    vector<vector<double> > noise_removed;
+    vector<vector<double>> noise_removed;
     //remove_noise_2d(grid, noise_removed, lidarParams, 0.01, 1);
     //grid = noise_removed;
 
     //remove_noise(grid, noise_removed, lidarParams);
 
-    vector<vector<vector<int> > > image_positions(lidarParams.height, vector<vector<int> >(lidarParams.width, vector<int>(2, 0)));
+    vector<vector<vector<int>>> image_positions(lidarParams.height, vector<vector<int>>(lidarParams.width, vector<int>(2, 0)));
     {
         // Calibration
         double rollVal = (envParams.roll - 500) / 1000.0;
@@ -233,7 +233,7 @@ void original_entire(vector<vector<double> > &grid, EnvParams &envParams, HyperP
         color_segments = graph.segmentate(hyperParams.original_color_segment_k);
     }
 
-    vector<vector<double> > interpolated_grid(lidarParams.height, vector<double>(lidarParams.width, 0));
+    vector<vector<double>> interpolated_grid(lidarParams.height, vector<double>(lidarParams.width, 0));
     {
         // Enhancement
         for (int i = 0; i < lidarParams.height; i++)
@@ -308,7 +308,7 @@ void original_entire(vector<vector<double> > &grid, EnvParams &envParams, HyperP
         }
     }
 
-    remove_noise(interpolated_grid, noise_removed, lidarParams, 0.001, 2);
+    //remove_noise(interpolated_grid, noise_removed, lidarParams, 0.001, 2);
     //interpolated_grid = noise_removed;
 
     {
