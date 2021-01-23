@@ -199,6 +199,7 @@ void onPointsReceive(const sensor_msgs::PointCloud2ConstPtr &msg)
     downsample_points(*msg, downsampled);
     sensor_msgs::PointCloud2 output;
     remove_noise(downsampled, output, 0.001, 3);
+    //output = downsampled;
     pub_msg.points = output;
     _pub_data.publish(pub_msg);
 }
