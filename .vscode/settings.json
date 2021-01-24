@@ -3,7 +3,8 @@
         "*.cpp": "cpp",
         "vector": "cpp",
         "bitset": "cpp",
-        "string_view": "cpp"
+        "string_view": "cpp",
+        "*.cuh": "cpp"
     },
     "python.autoComplete.extraPaths": [
         "/home/sono8/catkin_ws/devel/lib/python2.7/dist-packages",

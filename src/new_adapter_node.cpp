@@ -20,6 +20,7 @@
 #include "models/lidarParams.cpp"
 #include "io/rosToOpen3d.cpp"
 #include "io/open3dToRos.cpp"
+#include "preprocess/remove_noise2.cpp"
 
 using namespace std;
 using namespace open3d;
@@ -126,65 +127,6 @@ void downsample_points(const sensor_msgs::PointCloud2 &src, sensor_msgs::PointCl
     dst.header.frame_id = src.header.frame_id;
 }
 
-void remove_noise(const sensor_msgs::PointCloud2 &src, sensor_msgs::PointCloud2 &dst, double rad_coef = 0.01, int min_k = 2)
-{
-    int min_range = 3;
-
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::fromROSMsg(src, *cloud);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr near(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr far(new pcl::PointCloud<pcl::PointXYZ>);
-
-    for (int i = 0; i < cloud->size(); i++)
-    {
-        double x = (*cloud)[i].x;
-        double y = (*cloud)[i].y;
-        double z = (*cloud)[i].z;
-
-        double distance2 = x * x + y * y + z * z;
-        if (distance2 <= min_range * min_range)
-        {
-            near->push_back((*cloud)[i]);
-        }
-        else
-        {
-            far->push_back((*cloud)[i]);
-        }
-    }
-
-    pcl::KdTreeFLANN<pcl::PointXYZ>::Ptr kdtree(new pcl::KdTreeFLANN<pcl::PointXYZ>);
-    kdtree->setInputCloud(near);
-    pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
-    for (int i = 0; i < near->size(); i++)
-    {
-        double x = near->points[i].x;
-        double y = near->points[i].y;
-        double z = near->points[i].z;
-        double distance2 = x * x + y * y + z * z;
-
-        //探索半径：係数*(距離)^2
-        double radius = rad_coef * distance2;
-
-        vector<int> pointIdxNKNSearch(min_k);
-        vector<float> pointNKNSquaredDistance(min_k);
-
-        int result = kdtree->radiusSearch(cloud->points[i], radius, pointIdxNKNSearch, pointNKNSquaredDistance, min_k);
-        if (result == min_k)
-        {
-            inliers->indices.push_back(i);
-        }
-    }
-    pcl::ExtractIndices<pcl::PointXYZ> extract;
-    extract.setInputCloud(near);
-    extract.setIndices(inliers);
-    extract.setNegative(false);
-    extract.filter(*near);
-
-    *near += *far;
-    pcl::toROSMsg(*near, dst);
-    dst.header.frame_id = src.header.frame_id;
-}
-
 void onPointsReceive(const sensor_msgs::PointCloud2ConstPtr &msg)
 {
     if (!rgb || !thermal.data)
@@ -198,8 +140,8 @@ void onPointsReceive(const sensor_msgs::PointCloud2ConstPtr &msg)
     sensor_msgs::PointCloud2 downsampled;
     downsample_points(*msg, downsampled);
     sensor_msgs::PointCloud2 output;
-    remove_noise(downsampled, output, 0.001, 3);
-    //output = downsampled;
+    remove_noise2(downsampled, output, 0.001, 2);
+    output = downsampled;
     pub_msg.points = output;
     _pub_data.publish(pub_msg);
 }

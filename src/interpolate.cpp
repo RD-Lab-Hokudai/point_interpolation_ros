@@ -4,12 +4,6 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <open3d_test/PointsImagesFront.h>
 
-/*
-#include <pcl_ros/point_cloud.h>
-#include <pcl_conversions/pcl_conversions.h>
-#include <pcl/point_cloud.h>
-*/
-
 #include <cv_bridge/cv_bridge.h>
 #include <Open3D/Open3D.h>
 #include <opencv2/opencv.hpp>
@@ -25,6 +19,7 @@
 #include "entire_methods/original_entire.cpp"
 #include "entire_methods/linear_entire.cpp"
 #include "entire_methods/create_cloud_entire.cpp"
+#include "preprocess/remove_noise.cpp"
 
 using namespace std;
 using namespace open3d;
@@ -88,6 +83,8 @@ void onDataReceive(const open3d_test::PointsImagesFront &data)
     sensor_msgs::PointCloud2 ros_pc2;
     //open3dToRos(res_pcd, ros_pc2, data.points.header.frame_id);
     create_cloud_entire2(grid, lidar_params, ros_pc2);
+    sensor_msgs::PointCloud2 res;
+    remove_noise2(ros_pc2, res, 0.01, 3);
     _pub.publish(ros_pc2);
 }
 

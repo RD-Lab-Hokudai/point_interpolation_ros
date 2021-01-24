@@ -4,15 +4,20 @@
 #include <Open3D/Open3D.h>
 #include <opencv2/opencv.hpp>
 
+#include <sensor_msgs/PointCloud2.h>
+#include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/filters/filter.h>
 #include <pcl/filters/extract_indices.h>
 
+#include "../models/envParams.cpp"
+#include "../models/lidarParams.cpp"
+
 using namespace std;
 using namespace open3d;
 
-void remove_noise(vector<vector<double> > &src, vector<vector<double> > &dst, LidarParams &lidarParams, double rad_coef = 0.001, int min_k = 1)
+void remove_noise(vector<vector<double>> &src, vector<vector<double>> &dst, LidarParams &lidarParams, double rad_coef = 0.001, int min_k = 1)
 {
     int min_range = 3;
     pcl::PointCloud<pcl::PointXYZ>::Ptr near(new pcl::PointCloud<pcl::PointXYZ>);
@@ -97,6 +102,59 @@ void remove_noise(vector<vector<double> > &src, vector<vector<double> > &dst, Li
     }
 }
 
+void remove_noise2(const sensor_msgs::PointCloud2 &src, sensor_msgs::PointCloud2 &dst, double rad_coef = 0.01, int min_k = 2)
+{
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::fromROSMsg(src, *cloud);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr valid_cloud(new pcl::PointCloud<pcl::PointXYZ>);
+
+    for (int i = 0; i < cloud->size(); i++)
+    {
+        double x = (*cloud)[i].x;
+        double y = (*cloud)[i].y;
+        double z = (*cloud)[i].z;
+
+        double distance2 = x * x + y * y + z * z;
+        if (distance2 <= 0.1)
+        {
+        }
+        else
+        {
+            valid_cloud->push_back((*cloud)[i]);
+        }
+    }
+
+    pcl::KdTreeFLANN<pcl::PointXYZ>::Ptr kdtree(new pcl::KdTreeFLANN<pcl::PointXYZ>);
+    kdtree->setInputCloud(valid_cloud);
+    pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
+    vector<int> pointIdxNKNSearch;
+    vector<float> pointNKNSquaredDistance;
+    for (int i = 0; i < valid_cloud->size(); i++)
+    {
+        double x = valid_cloud->points[i].x;
+        double y = valid_cloud->points[i].y;
+        double z = valid_cloud->points[i].z;
+        double distance2 = x * x + y * y + z * z;
+
+        //探索半径：係数*(距離)^2
+        double radius = rad_coef * distance2;
+
+        int result = kdtree->radiusSearch(cloud->points[i], radius, pointIdxNKNSearch, pointNKNSquaredDistance, min_k);
+        if (result == min_k)
+        {
+            inliers->indices.push_back(i);
+        }
+    }
+    pcl::ExtractIndices<pcl::PointXYZ> extract;
+    extract.setInputCloud(valid_cloud);
+    extract.setIndices(inliers);
+    extract.setNegative(false);
+    extract.filter(*valid_cloud);
+
+    pcl::toROSMsg(*valid_cloud, dst);
+    dst.header.frame_id = src.header.frame_id;
+}
+
 void remove_noise_cv(cv::Mat &src, cv::Mat &dst, cv::Mat &target_vs_mat, EnvParams envParams, double rad_coef = 0.001, int min_k = 1)
 {
     auto ptr = make_shared<geometry::PointCloud>();
@@ -142,12 +200,12 @@ void remove_noise_cv(cv::Mat &src, cv::Mat &dst, cv::Mat &target_vs_mat, EnvPara
     });
 }
 
-void remove_noise_2d(vector<vector<double> > &src, vector<vector<double> > &dst, LidarParams &lidarParams, double rad_coef = 0.001, int min_k = 1)
+void remove_noise_2d(vector<vector<double>> &src, vector<vector<double>> &dst, LidarParams &lidarParams, double rad_coef = 0.001, int min_k = 1)
 {
     int rows = src.size();
     int cols = src[0].size();
-    dst = vector<vector<double> >(rows, vector<double>(cols, 0));
-    vector<vector<Eigen::Vector3d> > poses(rows, vector<Eigen::Vector3d>(cols));
+    dst = vector<vector<double>>(rows, vector<double>(cols, 0));
+    vector<vector<Eigen::Vector3d>> poses(rows, vector<Eigen::Vector3d>(cols));
     int r = 3;
     for (int i = 0; i < rows; i++)
     {
@@ -168,7 +226,7 @@ void remove_noise_2d(vector<vector<double> > &src, vector<vector<double> > &dst,
         }
     }
 
-    vector<vector<vector<int> > > neighbor_indices(rows, vector<vector<int> >(cols, vector<int>(8, -1)));
+    vector<vector<vector<int>>> neighbor_indices(rows, vector<vector<int>>(cols, vector<int>(8, -1)));
     int dx[8] = {1, 1, 0, -1, -1, -1, 0, 1};
     int dy[8] = {0, 1, 1, 1, 0, -1 - 1 - 1};
     for (int i = 0; i < 8; i++)
