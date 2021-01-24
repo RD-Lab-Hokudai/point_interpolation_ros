@@ -18,12 +18,12 @@ void remove_noise2(const sensor_msgs::PointCloud2 &src, sensor_msgs::PointCloud2
 
     for (int i = 0; i < cloud->size(); i++)
     {
-        double x = (*cloud)[i].x;
-        double y = (*cloud)[i].y;
-        double z = (*cloud)[i].z;
+        float x = (*cloud)[i].x;
+        float y = (*cloud)[i].y;
+        float z = (*cloud)[i].z;
 
-        double distance2 = x * x + y * y + z * z;
-        if (distance2 <= 0.1)
+        float distance2 = x * x + y * y + z * z;
+        if (distance2 <= 0.001)
         {
         }
         else
@@ -35,19 +35,20 @@ void remove_noise2(const sensor_msgs::PointCloud2 &src, sensor_msgs::PointCloud2
     pcl::KdTreeFLANN<pcl::PointXYZ>::Ptr kdtree(new pcl::KdTreeFLANN<pcl::PointXYZ>);
     kdtree->setInputCloud(valid_cloud);
     pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
-    vector<int> pointIdxNKNSearch;
-    vector<float> pointNKNSquaredDistance;
     for (int i = 0; i < valid_cloud->size(); i++)
     {
-        double x = valid_cloud->points[i].x;
-        double y = valid_cloud->points[i].y;
-        double z = valid_cloud->points[i].z;
-        double distance2 = x * x + y * y + z * z;
+        float x = (*valid_cloud)[i].x;
+        float y = (*valid_cloud)[i].y;
+        float z = (*valid_cloud)[i].z;
+
+        float distance2 = x * x + y * y + z * z;
 
         //探索半径：係数*(距離)^2
-        double radius = rad_coef * distance2;
+        double radius = rad_coef * sqrt(distance2);
 
-        int result = kdtree->radiusSearch(cloud->points[i], radius, pointIdxNKNSearch, pointNKNSquaredDistance, min_k);
+        vector<int> pointIdxNKNSearch;
+        vector<float> pointNKNSquaredDistance;
+        int result = kdtree->radiusSearch((*valid_cloud)[i], radius, pointIdxNKNSearch, pointNKNSquaredDistance, min_k);
         if (result == min_k)
         {
             inliers->indices.push_back(i);

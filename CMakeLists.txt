@@ -53,10 +53,8 @@ include_directories(
 
 link_libraries(${catkin_LIBRARIES} ${Open3D_LIBRARIES})
 
-add_executable(open3d_test_interpolate src/interpolate.cpp)
+add_executable(open3d_test_interpolater_node src/interpolater_node.cpp)
 
-add_executable(open3d_test_adapter src/adapter.cpp)
+add_executable(open3d_test_adapter_node src/adapter_node.cpp)
 
 add_executable(open3d_test_remove_noise_node src/remove_noise_node.cpp)
-
-add_executable(open3d_test_new_adapter src/new_adapter_node.cpp)
