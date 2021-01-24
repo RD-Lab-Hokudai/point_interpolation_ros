@@ -42,7 +42,6 @@ int height = 606;
 cv::Mat thermal;
 sensor_msgs::ImageConstPtr rgb;
 
-ros::Publisher _pub_removed;
 ros::Publisher _pub_data;
 LidarParams lidarParams;
 
@@ -151,11 +150,11 @@ void onPointsReceive(const sensor_msgs::PointCloud2ConstPtr &msg)
     pub_msg.thermal = *cv_bridge::CvImage(std_msgs::Header(), "mono8", thermal).toImageMsg();
     pub_msg.rgb = *rgb;
     sensor_msgs::PointCloud2 downsampled;
-    //downsample_points(*msg, downsampled);
-    downsampled = *msg;
+    downsample_points(*msg, downsampled);
+    //downsampled = *msg;
     sensor_msgs::PointCloud2 output;
     //remove_noise2(downsampled, output, 0.001, 2);
-    remove_noise2(downsampled, output, 0.005, 2);
+    remove_noise2(downsampled, output, 0.008, 2);
     pub_msg.points = output;
     _pub_data.publish(pub_msg);
 }
@@ -183,7 +182,6 @@ int main(int argc, char *argv[])
 
     ros::Subscriber subPoints = n.subscribe(points_node, 1, onPointsReceive);
 
-    _pub_removed = n.advertise<sensor_msgs::PointCloud2>("/removed", 1);
     _pub_data = n.advertise<open3d_test::PointsImagesFront>("/adapter/points_images_front", 1);
 
     // specify loop rate: a meaningful value according to your publisher configuration

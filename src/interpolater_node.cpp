@@ -5,11 +5,7 @@
 #include <open3d_test/PointsImagesFront.h>
 
 #include <cv_bridge/cv_bridge.h>
-#include <Open3D/Open3D.h>
 #include <opencv2/opencv.hpp>
-
-#include "io/open3dToRos.cpp"
-#include "io/rosToOpen3d.cpp"
 
 #include "models/envParams.cpp"
 #include "models/hyperParams.cpp"
@@ -19,10 +15,9 @@
 #include "entire_methods/original_entire.cpp"
 #include "entire_methods/linear_entire.cpp"
 #include "entire_methods/create_cloud_entire.cpp"
-#include "preprocess/remove_noise.cpp"
+#include "preprocess/remove_noise2.cpp"
 
 using namespace std;
-using namespace open3d;
 
 EnvParams params_use;
 HyperParams hyper_params;
@@ -84,7 +79,7 @@ void onDataReceive(const open3d_test::PointsImagesFront &data)
     //open3dToRos(res_pcd, ros_pc2, data.points.header.frame_id);
     create_cloud_entire2(grid, lidar_params, ros_pc2);
     sensor_msgs::PointCloud2 res;
-    remove_noise2(ros_pc2, res, 0.01, 3);
+    //remove_noise2(ros_pc2, res, 0.008, 3);
     _pub.publish(ros_pc2);
 }
 
