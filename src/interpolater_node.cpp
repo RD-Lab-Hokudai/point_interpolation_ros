@@ -5,6 +5,7 @@
 #include <open3d_test/PointsImagesFront.h>
 
 #include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
 #include <opencv2/opencv.hpp>
 
 #include "models/envParams.cpp"
@@ -54,12 +55,21 @@ void interpolate_original4(vector<vector<double>> &grid, cv::Mat &rgb_front, cv:
 
 void interpolate_original_thermal(vector<vector<double>> &grid, cv::Mat &thermal, vector<vector<Eigen::Vector3d>> &color_grid)
 {
-    original_entire(grid, params_use, hyper_params, lidar_params, thermal, 0, color_grid);
+#pragma omp parallel
+    {
+#pragma omp sections
+        {
+#pragma omp section
+            {
+                original_entire(grid, params_use, hyper_params, lidar_params, thermal, 0, color_grid);
+            }
+        }
+    }
 }
 
 void onDataReceive(const open3d_test::PointsImagesFront &data)
 {
-    cv::Mat thermal = cv_bridge::toCvCopy(data.thermal)->image;
+    cv::Mat thermal = cv_bridge::toCvCopy(data.thermal, sensor_msgs::image_encodings::BGR8)->image;
     cv::Mat rgb_front = cv_bridge::toCvCopy(data.rgb)->image;
 
     //open3d::geometry::PointCloud pcd;
@@ -72,7 +82,7 @@ void onDataReceive(const open3d_test::PointsImagesFront &data)
     interpolate_original_thermal(grid, thermal, color_grid);
     //interpolate_original4(grid, rgb_front, rgb_right, rgb_back, rgb_left, color_grid);
     //original_entire(grid, params_use, hyper_params, lidar_params, rgb_right, -lidar_params.width / 4, color_grid);
-    //linear_entire(grid, lidar_params);
+    linear_entire(grid, lidar_params);
     //auto res_pcd = create_cloud_entire(grid, lidar_params, color_grid);
 
     sensor_msgs::PointCloud2 ros_pc2;

@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <chrono>
 
 #include <opencv2/opencv.hpp>
 
@@ -8,169 +9,14 @@
 #include "../models/hyperParams.cpp"
 #include "../models/lidarParams.cpp"
 
+#include "../utils/SegmentationGraph.cpp"
+#include "../utils/UnionFind.cpp"
+
 using namespace std;
-
-struct UnionFind
-{
-    int d[1000 * 1000];
-    UnionFind(int n = 0)
-    {
-        for (int i = 0; i < n; i++)
-            d[i] = -1;
-    }
-    int root(int x)
-    {
-        if (d[x] < 0)
-            return x;
-        return d[x] = root(d[x]);
-    }
-    bool unite(int x, int y)
-    {
-        x = root(x);
-        y = root(y);
-        if (x == y)
-            return false;
-        if (d[x] > d[y])
-            swap(x, y);
-        d[x] += d[y];
-        d[y] = x;
-        return true;
-    }
-    bool same(int x, int y) { return root(x) == root(y); }
-    int size(int x) { return -d[root(x)]; }
-};
-
-class Graph
-{
-    vector<tuple<double, int, int>> edges;
-    int length;
-
-    double get_diff(cv::Vec3b &a, cv::Vec3b &b)
-    {
-        double diff = 0;
-        for (int i = 0; i < 3; i++)
-        {
-            diff += (a[i] - b[i]) * (a[i] - b[i]);
-        }
-        diff = sqrt(diff);
-        return diff;
-    }
-
-    double get_threshold(double k, int size)
-    {
-        return 1.0 * k / size;
-    }
-
-public:
-    Graph(cv::Mat *img)
-    {
-        length = img->rows * img->cols;
-        int dx[] = {1, 0, 0, -1};
-        int dy[] = {0, 1, -1, 0};
-        for (int i = 0; i < img->rows; i++)
-        {
-            cv::Vec3b *row = img->ptr<cv::Vec3b>(i);
-            for (int j = 0; j < img->cols; j++)
-            {
-                for (int k = 0; k < 2; k++)
-                {
-                    int to_x = j + dx[k];
-                    int to_y = i + dy[k];
-                    if (0 <= to_x && to_x < img->cols && 0 <= to_y && to_y < img->rows)
-                    {
-                        double diff = get_diff(row[j], img->at<cv::Vec3b>(to_y, to_x));
-                        edges.emplace_back(diff, i * img->cols + j, to_y * img->cols + to_x);
-                    }
-                }
-            }
-        }
-    }
-
-    shared_ptr<UnionFind> segmentate(double k)
-    {
-        auto unionFind = make_shared<UnionFind>(length);
-        int edge_len = edges.size();
-        double *thresholds = new double[length];
-        for (int i = 0; i < length; i++)
-        {
-            thresholds[i] = get_threshold(k, 1);
-        }
-
-        double diff_max = 0;
-        double diff_min = 1000000;
-        for (int i = 0; i < edge_len; i++)
-        {
-            double diff = get<0>(edges[i]);
-            diff_max = max(diff_max, diff);
-            diff_min = min(diff_min, diff);
-        }
-        int bucket_len = length;
-        vector<int> *bucket = new vector<int>[bucket_len + 1];
-        for (int i = 0; i < edge_len; i++)
-        {
-            int diff_level = (int)(bucket_len * (get<0>(edges[i]) - diff_min) / (diff_max - diff_min));
-            bucket[diff_level].emplace_back(i);
-        }
-
-        for (int i = 0; i <= bucket_len; i++)
-        {
-            for (int j = 0; j < bucket[i].size(); j++)
-            {
-                double diff = get<0>(edges[bucket[i][j]]);
-                int from = get<1>(edges[bucket[i][j]]);
-                int to = get<2>(edges[bucket[i][j]]);
-
-                from = unionFind->root(from);
-                to = unionFind->root(to);
-
-                if (from == to)
-                {
-                    continue;
-                }
-
-                if (diff <= min(thresholds[from], thresholds[to]))
-                {
-                    unionFind->unite(from, to);
-                    int root = unionFind->root(from);
-                    thresholds[root] = diff + get_threshold(k, unionFind->size(root));
-                }
-            }
-        }
-        delete[] thresholds;
-        delete[] bucket;
-
-        /*
-        sort(edges.begin(), edges.end());
-        cout << "Sort:" << chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - startTime).count() << "ms" << endl;
-        for (int i = 0; i < edge_len; i++)
-        {
-            double diff = get<0>(edges[i]);
-            int from = get<1>(edges[i]);
-            int to = get<2>(edges[i]);
-
-            from = unionFind->root(from);
-            to = unionFind->root(to);
-
-            if (from == to)
-            {
-                continue;
-            }
-
-            if (diff <= min(thresholds[from], thresholds[to]))
-            {
-                unionFind->unite(from, to);
-                int root = unionFind->root(from);
-                thresholds[root] = diff + get_threshold(k, unionFind->size(root));
-            }
-        }
-        */
-
-        return unionFind;
-    }
-};
 
 void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperParams &hyperParams, LidarParams &lidarParams, cv::Mat &img, int horizon_offset, vector<vector<Eigen::Vector3d>> &color_grid)
 {
+    auto start = chrono::system_clock::now();
     vector<vector<double>> noise_removed;
     //remove_noise_2d(grid, noise_removed, lidarParams, 0.01, 1);
     //grid = noise_removed;
@@ -225,12 +71,20 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
         }
     }
 
+    double time = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start).count();
+    cout << "positioning " << time << endl;
+
     shared_ptr<UnionFind> color_segments;
     {
         // Segmentation
-        Graph graph(&img);
+        SegmentationGraph graph(&img);
+        time = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start).count();
+        cout << "generation " << time << endl;
         color_segments = graph.segmentate(hyperParams.original_color_segment_k);
     }
+
+    time = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start).count();
+    cout << "segmentation " << time << endl;
 
     vector<vector<double>> interpolated_grid(lidarParams.height, vector<double>(lidarParams.width, 0));
     {
@@ -288,15 +142,8 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
                             tmp *= hyperParams.original_coef_s;
                             //tmp = 0;
                         }
-                        if (grid[i + dy][(j + dx + lidarParams.width) % lidarParams.width] == 0)
-                        {
-                            val += tmp * 1e2;
-                        }
-                        else
-                        {
-                            val += tmp * grid[i + dy][(j + dx + lidarParams.width) % lidarParams.width];
-                        }
                         coef += tmp;
+                        val += tmp * grid[i + dy][(j + dx + lidarParams.width) % lidarParams.width];
                     }
                 }
                 if (coef > 0 /* some threshold */)
@@ -310,6 +157,12 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
     //remove_noise(interpolated_grid, noise_removed, lidarParams, 0.001, 2);
     //interpolated_grid = noise_removed;
 
+    grid = interpolated_grid;
+
+    time = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start).count();
+    cout << "enhancement " << time << endl;
+
+    /*
     {
         // Apply
         for (int i = 0; i < lidarParams.height; i++)
@@ -324,4 +177,5 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
             }
         }
     }
+    */
 }

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD 17)
 project(open3d_test)
 
 find_package(catkin REQUIRED COMPONENTS
@@ -36,6 +36,7 @@ DEPENDS Open3D
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -fopenmp")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Open3D_CXX_FLAGS}")
 
 ###########
 ## Build ##
