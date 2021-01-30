@@ -45,6 +45,9 @@ sensor_msgs::ImageConstPtr rgb;
 ros::Publisher _pub_data;
 LidarParams lidarParams;
 
+string save_dir="~/catkin_ws/";
+uint counter = 0;
+
 void reverse_img(cv::Mat &src, cv::Mat &dst)
 {
     dst = cv::Mat::zeros(src.rows, src.cols, CV_8UC1);
@@ -157,6 +160,13 @@ void onPointsReceive(const sensor_msgs::PointCloud2ConstPtr &msg)
     remove_noise2(downsampled, output, 0.008, 2);
     pub_msg.points = output;
     _pub_data.publish(pub_msg);
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pcd(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::fromROSMsg(*msg, *pcd);
+    pcl::io::savePCDFileASCII(save_dir+to_string(counter) + ".pcd", *pcd);
+    cv::imwrite(save_dir+to_string(counter) + ".png", thermal);
+    cv::imwrite(save_dir+to_string(counter) + "_rgb.png", cv_bridge::toCvCopy(rgb, sensor_msgs::image_encodings::BGR8)->image);
+    counter++;
 }
 
 int main(int argc, char *argv[])

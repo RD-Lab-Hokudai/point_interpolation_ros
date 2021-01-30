@@ -79,7 +79,14 @@ void onDataReceive(const open3d_test::PointsImagesFront &data)
     vector<vector<double>> grid;
     grid_entire2(data.points, grid, lidar_params);
     vector<vector<Eigen::Vector3d>> color_grid(lidar_params.height, vector<Eigen::Vector3d>(lidar_params.width, Eigen::Vector3d(0, 0, 0)));
-    interpolate_original_thermal(grid, thermal, color_grid);
+    try
+    {
+        interpolate_original_thermal(grid, thermal, color_grid);
+    }
+    catch (char *e)
+    {
+        cout << "AAA" << endl;
+    }
     //interpolate_original4(grid, rgb_front, rgb_right, rgb_back, rgb_left, color_grid);
     //original_entire(grid, params_use, hyper_params, lidar_params, rgb_right, -lidar_params.width / 4, color_grid);
     linear_entire(grid, lidar_params);

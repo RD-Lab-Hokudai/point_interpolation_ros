@@ -7,9 +7,18 @@
 
 using namespace std;
 
+struct Edge
+{
+    int node1;
+    int node2;
+    double cost;
+
+    Edge(int n1, int n2, double c) : node1(n1), node2(n2), cost(c) {}
+};
+
 class SegmentationGraph
 {
-    vector<tuple<double, int, int>> edges;
+    vector<Edge> edges;
     int length;
 
     double get_diff(cv::Vec3b &a, cv::Vec3b &b)
@@ -46,7 +55,7 @@ public:
                     if (0 <= to_x && to_x < img->cols && 0 <= to_y && to_y < img->rows)
                     {
                         double diff = get_diff(row[j], img->at<cv::Vec3b>(to_y, to_x));
-                        edges.emplace_back(diff, i * img->cols + j, to_y * img->cols + to_x);
+                        edges.emplace_back(i * img->cols + j, to_y * img->cols + to_x, diff);
                     }
                 }
             }
@@ -55,7 +64,6 @@ public:
 
     shared_ptr<UnionFind> segmentate(double k)
     {
-        auto startTime = chrono::system_clock::now();
         auto unionFind = make_shared<UnionFind>(length);
         int edge_len = edges.size();
         double *thresholds = new double[length];
@@ -68,7 +76,7 @@ public:
         double diff_min = 1000000;
         for (int i = 0; i < edge_len; i++)
         {
-            double diff = get<0>(edges[i]);
+            double diff = edges[i].cost;
             diff_max = max(diff_max, diff);
             diff_min = min(diff_min, diff);
         }
@@ -76,18 +84,17 @@ public:
         vector<int> *bucket = new vector<int>[bucket_len + 1];
         for (int i = 0; i < edge_len; i++)
         {
-            int diff_level = (int)(bucket_len * (get<0>(edges[i]) - diff_min) / (diff_max - diff_min));
+            int diff_level = (int)(bucket_len * (edges[i].cost - diff_min) / (diff_max - diff_min));
             bucket[diff_level].emplace_back(i);
         }
-        cout << "Sort:" << chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - startTime).count() << "ms" << endl;
 
         for (int i = 0; i <= bucket_len; i++)
         {
             for (int j = 0; j < bucket[i].size(); j++)
             {
-                double diff = get<0>(edges[bucket[i][j]]);
-                int from = get<1>(edges[bucket[i][j]]);
-                int to = get<2>(edges[bucket[i][j]]);
+                double diff = edges[bucket[i][j]].cost;
+                int from = edges[bucket[i][j]].node1;
+                int to = edges[bucket[i][j]].node2;
 
                 from = unionFind->root(from);
                 to = unionFind->root(to);

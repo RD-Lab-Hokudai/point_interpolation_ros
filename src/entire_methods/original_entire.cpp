@@ -23,7 +23,7 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
 
     //remove_noise(grid, noise_removed, lidarParams);
 
-    vector<vector<vector<int>>> image_positions(lidarParams.height, vector<vector<int>>(lidarParams.width, vector<int>(2, 0)));
+    vector<vector<vector<int>>> image_positions(lidarParams.height, vector<vector<int>>(lidarParams.width, vector<int>(2, -1)));
     {
         // Calibration
         double rollVal = (envParams.roll - 500) / 1000.0;
@@ -71,20 +71,12 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
         }
     }
 
-    double time = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start).count();
-    cout << "positioning " << time << endl;
-
     shared_ptr<UnionFind> color_segments;
     {
         // Segmentation
         SegmentationGraph graph(&img);
-        time = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start).count();
-        cout << "generation " << time << endl;
         color_segments = graph.segmentate(hyperParams.original_color_segment_k);
     }
-
-    time = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start).count();
-    cout << "segmentation " << time << endl;
 
     vector<vector<double>> interpolated_grid(lidarParams.height, vector<double>(lidarParams.width, 0));
     {
@@ -102,7 +94,7 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
 
                 int img_u = image_positions[i][j][1];
                 int img_v = image_positions[i][j][0];
-                if (img_u == 0 && img_v == 0)
+                if (img_u == -1 && img_v == -1)
                 {
                     continue;
                 }
@@ -159,8 +151,8 @@ void original_entire(vector<vector<double>> &grid, EnvParams &envParams, HyperPa
 
     grid = interpolated_grid;
 
-    time = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start).count();
-    cout << "enhancement " << time << endl;
+    double time = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start).count();
+    //cout << "enhancement " << time << endl;
 
     /*
     {
