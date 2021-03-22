@@ -161,6 +161,7 @@ void onPointsReceive(const sensor_msgs::PointCloud2ConstPtr &msg)
     pub_msg.points = output;
     _pub_data.publish(pub_msg);
 
+    // To save data, remove this comment
     /*
     pcl::PointCloud<pcl::PointXYZ>::Ptr pcd(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::fromROSMsg(*msg, *pcd);

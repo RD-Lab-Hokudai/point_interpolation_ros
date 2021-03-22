@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2)
 set (CMAKE_CXX_STANDARD 17)
-project(open3d_test)
+project(point_interpolation_ros)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
