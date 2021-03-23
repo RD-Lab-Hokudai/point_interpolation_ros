@@ -47,4 +47,4 @@ $ catkin_make
 $ ros launch point_interpolation.launch
 ```
 
-If you will save images and point clouds, check 'src/adapter_node.cpp'.
+If you want to save images and point clouds, check 'src/adapter_node.cpp' and remove comment on the corresponding part.
